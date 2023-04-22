@@ -24,7 +24,7 @@ def load_data():
 
     return x_train, y_train, x_val, y_val
 
-def build_model(input_shape) -> RangerModel:
+def build_model(input_shape):
     """
     Saved weights should be the path to a h5 file if you have already trained the model
     """
@@ -46,19 +46,22 @@ def build_model(input_shape) -> RangerModel:
     dense1 = layers.Dense(84, activation='relu', name='dense1')(r)
     outputs = layers.Dense(10, activation='softmax', name='dense3')(dense1)
 
-    return RangerModel(inputs=(inputs,), outputs=outputs)
+    return keras.Model(inputs=(inputs,), outputs=outputs)
 
 x_train, y_train, x_val, y_val = load_data()
 
 model = build_model()
 
+#Load Model into Ranger Helper
+RANGER = RANGER_HELPER(model)
+
 #Disable Ranger Layers inside the model
-model.set_ranger_mode(RangerModes.Disabled)
+RANGER.set_ranger_mode(RangerModes.Disabled)
 
 #Train The network (Or Load the weights)
 
 #Set Ranger Layers to Parameter Tuning mode
-model.set_ranger_mode(RangerModes.RangeTuning)
+RANGER.set_ranger_mode(RangerModes.RangeTuning)
 
 #Set Ranger Layers to Inference Mode
 #Now we can test the effectiveness of the ranger approach

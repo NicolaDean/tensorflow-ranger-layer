@@ -1,7 +1,9 @@
 import tensorflow as tf
+from tensorflow import keras
 from enum import Enum
 import sys
-
+from keras.engine import functional
+from keras import Sequential
 RANGER_MODULE_PATH = "../"
 
 # appending a path
@@ -9,31 +11,61 @@ sys.path.append(RANGER_MODULE_PATH) #CHANGE THIS LINE
 
 from custom_layers.ranger import *
 
-class RangerModel(tf.keras.Model):
+class RANGER_HELPER():
 
-    def __init__(self,input, output,name="RangerModel"):
-        super().__init__(input,output,name)
+    def __init__(self,model):
+        self.model = model
 
     '''
     Find all Ranger layer in the network and set theyr mode to a specific one
     '''
     def set_ranger_mode(self,mode:RangerModes):
-        layers = [layer for layer in self.layers]
+        layers = [layer for layer in self.model.layers]
         for l in layers:
             if isinstance(l,Ranger):
                 l.set_ranger_mode(mode)
 
     '''
-    Take in input a classic CNN and add ranger layer for each Convolution
+    Recursively Explore Layer of model subblock in search of Conv and Maxpool to add Ranger after them
     '''
-    def convert_model(model: tf.keras.Model):
+    def convert_block(layers) -> functional.Functional:
+        new_layer = keras.Sequential()
+
+        for l in layers:
+            if isinstance(l,functional.Functional):
+                block_layers = [layer for layer in l.layers]
+                new_block = RANGER_HELPER.convert_block(block_layers)
+                new_layer.add(new_block)
+            if isinstance(l,tf.layers.Conv2D) or isinstance(l,tf.layers.MaxPool2D):
+                print(f"Added Ranger after layer: {l.name}")
+                new_layer.add(l)
+                new_layer.add(Ranger)
+            else:
+                new_layer.add(l)
+        return new_layer
+        
+    '''
+    Take in input a classic CNN and add ranger layer for each Convolution
+    TODO MAKE THIS PROCESS RECURSIVE SO THAT WE CAN CONVERT ALSO COMPEX MODEL LIKE RESNET (or models that use subblocks of layers)
+    '''
+    def convert_model_from_src(model: tf.keras.Model):
         #TODO NOT IMPLEMENTED YET
         layers = [layer for layer in model.layers]
-        for l in layers:
-            if isinstance(l,tf.layers.Conv2D):
-                print("Convolution:")
-        return 1
+
+        #IN and OUT of the Network
+        input = layers[0]
+        output = layers[len(layers)-1]
+
+        layers.pop(0)   #Remove input
+        layers.pop()    #Remove output
+
+        #Recursively Search every subblock to add Renger after Conv and Maxpool
+        new_model = RANGER_HELPER.convert_block(layers)
+
+        return new_model
     
+    def convert_model(self):
+        self.model = RANGER_HELPER.convert_model_from_src(self.model)
 
     def call(self, inputs):
         #TODO
@@ -52,19 +84,20 @@ x = Conv2D(...)(x)
 x = Conv2D(...)(x)
 output = Dense(...)(x)
 
-model = RangerModel(input, output, "My_ranger_Model")
+model = keras.Model(input, output, "My_ranger_Model")
 model.compile(...)
 
-
-model.set_ranger_mode(RangerModes.Training)
+#Load model into ranger
+RANGER = RANGER_HELPER(model)
+RANGER.set_ranger_mode(RangerModes.Training)
 
 [... TRAIN THE MODEL ...]
 
-model.set_ranger_mode(RangerModes.RangeTuning)
+RANGER.set_ranger_mode(RangerModes.RangeTuning)
 
 [... Run one epochs  to extract domain...]
 
-model.set_ranger_mode(RangerModes.Inference)
+RANGER.set_ranger_mode(RangerModes.Inference)
 
 [... Now we can integrate Classes layers and test Ranger stuff ...]
 
