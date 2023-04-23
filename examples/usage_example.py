@@ -34,27 +34,36 @@ def build_model(input_shape):
     pool1 = layers.MaxPool2D(pool_size=(2, 2), strides=(1, 1), name='maxpool1')(conv1)
     conv2 = layers.Conv2D(filters=16, kernel_size=(5, 5), strides=(1, 1), activation='relu', padding="same",
                           name='conv2')(pool1)
-    
-    r = Ranger(name = 'ranger1')(conv2)
-    pool2 = layers.MaxPool2D(pool_size=(2, 2), strides=(1, 1), name='maxpool2')(r)
-    r = Ranger(name = 'ranger2')(pool2)
+    pool2 = layers.MaxPool2D(pool_size=(2, 2), strides=(1, 1), name='maxpool2')(conv2)
     conv3 = layers.Conv2D(filters=120, kernel_size=(5, 5), strides=(1, 1), activation='relu', padding="same",
-                          name='conv3')(r)
+                          name='conv3')(pool2)
     
     flatten = layers.Flatten(name='flatten')(conv3)
-    r = Ranger(name = 'ranger3')(flatten)
-    dense1 = layers.Dense(84, activation='relu', name='dense1')(r)
+    dense1 = layers.Dense(84, activation='relu', name='dense1')(flatten)
     outputs = layers.Dense(10, activation='softmax', name='dense3')(dense1)
 
     return keras.Model(inputs=(inputs,), outputs=outputs)
 
+#--------------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------
+#--------------------------EXAMPLE CODE------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------
+
+#Load Data from dataset
 x_train, y_train, x_val, y_val = load_data()
 
-model = build_model()
+#Build the model
+model = build_model(x_train[0].shape)
+model.summary()
 
 #Load Model into Ranger Helper
 RANGER = RANGER_HELPER(model)
+#Add Ranger Layer after each Convolutions or Maxpool
+RANGER.convert_model()
+RANGER.get_model().summary()
 
+exit()
 #Disable Ranger Layers inside the model
 RANGER.set_ranger_mode(RangerModes.Disabled)
 

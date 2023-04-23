@@ -1,3 +1,4 @@
+from tensorflow import keras
 import tensorflow as tf
 import numpy as np
 import copy
@@ -61,7 +62,7 @@ class Ranger(tf.keras.layers.Layer):
         return (self.min, self.max)
 '''
 
-class Ranger(tf.keras.layers.Layer):
+class Ranger(keras.layers.Layer):
     def __init__(self, name):
         super(Ranger, self).__init__(name = name)
         self.mode = RangerModes.Training

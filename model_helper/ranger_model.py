@@ -36,10 +36,10 @@ class RANGER_HELPER():
                 block_layers = [layer for layer in l.layers]
                 new_block = RANGER_HELPER.convert_block(block_layers)
                 new_layer.add(new_block)
-            if isinstance(l,tf.layers.Conv2D) or isinstance(l,tf.layers.MaxPool2D):
+            if isinstance(l,keras.layers.Conv2D) or isinstance(l,keras.layers.MaxPool2D):
                 print(f"Added Ranger after layer: {l.name}")
                 new_layer.add(l)
-                new_layer.add(Ranger)
+                new_layer.add(Ranger("ranger_" + l.name))
             else:
                 new_layer.add(l)
         return new_layer
@@ -53,23 +53,20 @@ class RANGER_HELPER():
         layers = [layer for layer in model.layers]
 
         #IN and OUT of the Network
-        input = layers[0]
-        output = layers[len(layers)-1]
-
-        layers.pop(0)   #Remove input
-        layers.pop()    #Remove output
+        #outputs = layers[len(layers)-1]
+        #layers.pop()    #Remove output
 
         #Recursively Search every subblock to add Renger after Conv and Maxpool
         new_model = RANGER_HELPER.convert_block(layers)
+        #new_model = keras.Model(inputs=(inputs), outputs=outputs)
 
         return new_model
     
     def convert_model(self):
         self.model = RANGER_HELPER.convert_model_from_src(self.model)
 
-    def call(self, inputs):
-        #TODO
-        super().call(inputs)
+    def get_model(self):
+        return self.model
 
 
 
