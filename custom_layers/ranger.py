@@ -104,7 +104,8 @@ class Ranger(keras.layers.Layer):
         elif self.mode == RangerModes.RangeTuning:
             inp = tf.reshape(inputs, inputs.shape[1:])
             #update ranges -> no effect on the final result
-            w = self.get_weights()[0]
+            #w = self.get_weights()[0]
+            w = self.w #TODO => CHECK IF THIS IS CORRECT
 
             range_min = w[0]
             range_max = w[1]
@@ -119,16 +120,24 @@ class Ranger(keras.layers.Layer):
             not_bool_min = tf.ones(bool_min.shape) - bool_min
             range_min = bool_min*range_min + not_bool_min*inp
 
+            tmp_w = []
             if self.granularity == RangerGranularity.Layer:
-                global_max = tf.max(range_max)
+                #global_max = tf.max(range_max)
+                global_max = tf.math.reduce_max(range_min)
                 range_max = tf.fill(range_max.shape, global_max)
 
-                global_min = tf.min(range_min)
+                #global_min = tf.min(range_min)
+                global_min = tf.math.reduce_min(range_min)
                 range_min = tf.fill(range_min.shape, global_min)
 
-            w = np.array([range_min, range_max])
+            #w = np.array([range_min, range_max])
+            #self.set_weights([w])
 
-            self.set_weights([w])
+            #In tf2.0 non si puo usare get o set durante la call, e non si puo convertire in numpy durante la call
+            tmp_w.append(range_max)
+            tmp_w.append(range_min)
+
+            self.w = tf.stack(tmp_w)
 
             #let intermediate pass through without any modifications
             return inputs

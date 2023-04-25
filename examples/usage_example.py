@@ -11,7 +11,9 @@ sys.path.append(LIBRARY_PATH) #CHANGE THIS LINE
 
 from custom_layers.ranger import *
 from model_helper.ranger_model import *
-from models.lenet import LeNet
+from models import VGG16
+from models import LeNet
+print(f" Tensorflow verion: {tf.__version__}")
 
 def load_data():
     (x_train, y_train), (x_test, y_test) = datasets.mnist.load_data()
@@ -35,7 +37,7 @@ def load_data():
 x_train, y_train, x_val, y_val = load_data()
 
 #Build the model
-model = LeNet(x_train[0].shape)
+model = VGG16(x_train[0].shape)
 model.summary()
 
 #Load Model into Ranger Helper
@@ -44,10 +46,19 @@ RANGER = RANGER_HELPER(model)
 RANGER.convert_model()
 RANGER.get_model().summary()
 
-exit()
-#Disable Ranger Layers inside the model
-RANGER.set_ranger_mode(RangerModes.Disabled)
+#Extract the new Model containing Ranger
+ranger_model = RANGER.get_model()
 
+#Compute the Range Domain of each Layer by putting Ranger in "RangeTuning" mode
+RANGER.set_ranger_mode(RangerModes.RangeTuning)
+#Emulate the tuning process
+ranger_model.predict(np.expand_dims(x_val[4], 0)) 
+
+#Now we can use Model with Clipped or Ranged values in inference mode
+RANGER.set_ranger_mode(RangerModes.Inference)
+ranger_model.predict(np.expand_dims(x_val[4], 0)) 
+
+exit()
 #Train The network (Or Load the weights)
 
 #Set Ranger Layers to Parameter Tuning mode
