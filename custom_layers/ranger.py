@@ -12,6 +12,18 @@ class RangerModes(Enum):
     Inference       = 3,
     Disabled        = 4,
 
+
+#these policy names are taken from the content of "Towards a Safety Case for Hardware Fault Tolerance in Convolutional Neural 
+#Networks Using Activation Range Supervision" paper
+class RangerPolicies(Enum):
+    Clipper         = 1,        #clip to 0 outliers
+    Ranger          = 2,        #saturate to range bounds outliers
+
+#different granularities refer to different 
+class RangerGranularity(Enum):
+    Layer           = 1,
+    Value           = 2,
+
 '''
 
 class Ranger(tf.keras.layers.Layer):
@@ -66,9 +78,17 @@ class Ranger(keras.layers.Layer):
     def __init__(self, name):
         super(Ranger, self).__init__(name = name)
         self.mode = RangerModes.Training
+        self.policy = RangerPolicies.Clipper
+        self.granularity = RangerGranularity.Layer
     
     def set_ranger_mode(self,mode:RangerModes):
         self.mode = mode
+    
+    def set_ranger_policy(self, policy:RangerPolicies):
+        self.policy = policy
+    
+    def set_ranger_granularity(self, granularity:RangerGranularity):
+        self.granularity = granularity
 
     def build(self, input_shape):
 
@@ -99,6 +119,13 @@ class Ranger(keras.layers.Layer):
             not_bool_min = tf.ones(bool_min.shape) - bool_min
             range_min = bool_min*range_min + not_bool_min*inp
 
+            if self.granularity == RangerGranularity.Layer:
+                global_max = tf.max(range_max)
+                range_max = tf.fill(range_max.shape, global_max)
+
+                global_min = tf.min(range_min)
+                range_min = tf.fill(range_min.shape, global_min)
+
             w = np.array([range_min, range_max])
 
             self.set_weights([w])
@@ -114,7 +141,12 @@ class Ranger(keras.layers.Layer):
             bool_max = tf.cast(bool_max, tf.float32)
             bool_min = tf.cast(bool_min, tf.float32)
             merged_mask = bool_max * bool_min
-            return merged_mask * inputs
+
+            if self.policy == RangerPolicies.Clipper:
+                return merged_mask * inputs
+            elif self.policy == RangerPolicies.Ranger:
+                return merged_mask * inputs + bool_max * range_max + bool_min * range_min
+
         else:
             return inputs
 
