@@ -91,9 +91,13 @@ class Ranger(keras.layers.Layer):
         self.granularity = granularity
 
     def build(self, input_shape):
+        #range_max = tf.experimental.numpy.full(input_shape[1:], tf.dtypes.float32.min, dtype = tf.float32)
+        #range_min = tf.experimental.numpy.full(input_shape[1:], tf.dtypes.float32.max, dtype = tf.float32)
 
-        range_max = tf.experimental.numpy.full(input_shape[1:], tf.dtypes.float32.min, dtype = tf.float32)
-        range_min = tf.experimental.numpy.full(input_shape[1:], tf.dtypes.float32.max, dtype = tf.float32)
+        #Per non usare features sperimentali
+        range_max = tf.fill(input_shape[1:],tf.dtypes.float32.min)
+        range_min = tf.fill(input_shape[1:],tf.dtypes.float32.max)
+
         self.w = tf.Variable(initial_value = (range_min, range_max), trainable = False)
         self.record = False         #state if the range can be evaluated -> TRUE in the middle between training and final inference
     
@@ -110,45 +114,46 @@ class Ranger(keras.layers.Layer):
             range_min = w[0]
             range_max = w[1]
 
-            bool_max = range_max >= inp
-            bool_max = tf.cast(bool_max, tf.float32)
-            not_bool_max = tf.ones(bool_max.shape) - bool_max
-            range_max = bool_max*range_max + not_bool_max*inp
+            bool_max        = range_max >= inp
+            bool_max        = tf.cast(bool_max, tf.float32)
+            not_bool_max    = tf.ones(bool_max.shape) - bool_max
+            range_max       = bool_max * range_max + not_bool_max * inp
 
-            bool_min = range_min <= inp
-            bool_min = tf.cast(bool_min, tf.float32)
-            not_bool_min = tf.ones(bool_min.shape) - bool_min
-            range_min = bool_min*range_min + not_bool_min*inp
+            bool_min        = range_min <= inp
+            bool_min        = tf.cast(bool_min, tf.float32)
+            not_bool_min    = tf.ones(bool_min.shape) - bool_min
+            range_min       = bool_min*range_min + not_bool_min*inp
 
             tmp_w = []
             if self.granularity == RangerGranularity.Layer:
                 #global_max = tf.max(range_max)
                 global_max = tf.math.reduce_max(range_min)
-                range_max = tf.fill(range_max.shape, global_max)
+                range_max  = tf.fill(range_max.shape, global_max)
 
                 #global_min = tf.min(range_min)
                 global_min = tf.math.reduce_min(range_min)
-                range_min = tf.fill(range_min.shape, global_min)
+                range_min  = tf.fill(range_min.shape, global_min)
 
             #w = np.array([range_min, range_max])
-            #self.set_weights([w])
+            self.set_weights([w])
 
             #In tf2.0 non si puo usare get o set durante la call, e non si puo convertire in numpy durante la call
+            #Per evitare di usare numpy dentro call
             tmp_w.append(range_max)
             tmp_w.append(range_min)
 
-            self.w = tf.stack(tmp_w)
+            self.w = tf.stack(tmp_w) #Crea un array del tipo [range_min,range_max] in tensorflow
 
             #let intermediate pass through without any modifications
             return inputs
         elif self.mode == RangerModes.Inference:
             #final inference
-            range_min = self.w[0]
-            range_max = self.w[1]
-            bool_max = range_max >= inputs
-            bool_min = range_min <= inputs
-            bool_max = tf.cast(bool_max, tf.float32)
-            bool_min = tf.cast(bool_min, tf.float32)
+            range_min   = self.w[0]
+            range_max   = self.w[1]
+            bool_max    = range_max >= inputs
+            bool_min    = range_min <= inputs
+            bool_max    = tf.cast(bool_max, tf.float32)
+            bool_min    = tf.cast(bool_min, tf.float32)
             merged_mask = bool_max * bool_min
 
             if self.policy == RangerPolicies.Clipper:
