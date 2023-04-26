@@ -34,18 +34,20 @@ def convert_block(layers,num_of_injection_sites) -> functional.Functional:
         CLASSES_MODEL_TYPE = CLASSES_HELPER.check_classes_layer_compatibility(l)
 
         if CLASSES_MODEL_TYPE != None:
-            print(f"Added Fault Layer after layer: {l.name}")
-
+            
+            print(f"Added Fault Layer after layer: {l.name} with Error Model [{CLASSES_MODEL_TYPE}]")
+            
             shape = l.output_shape
             inverted_shape = (shape[0],shape[3],shape[1],shape[2])
 
             print(f"Shapes : ({shape} => {inverted_shape})")
+            
             available_injection_sites, masks = create_injection_sites_layer_simulator(num_of_injection_sites,
                                                                           CLASSES_MODEL_TYPE,
                                                                           str(inverted_shape), str(shape))
             
             new_layer.add(l)
-            new_layer.add(ErrorSimulator(available_injection_sites, masks, len(available_injection_sites),name="classes_" + l.name))
+            new_layer.add(ErrorSimulator(available_injection_sites, masks,num_of_injection_sites,name="classes_" + l.name))
 
         elif isinstance(l,functional.Functional):
             block_layers = [layer for layer in l.layers]
@@ -72,20 +74,30 @@ class CLASSES_HELPER():
     def get_model(self):
         return self.model
     
-    
+    def set_mode(self, layer_name, mode: ErrorSimulatorMode):
+        layer = self.model.get_layer("classes_" + layer_name)
+
+        if isinstance(layer,ErrorSimulator):
+            print(f"Changing mode to {layer.name}")
+            layer.set_mode(mode)
+
+
     def check_classes_layer_compatibility(layer):
         if isinstance(layer,keras.layers.Conv2D):
             stride = layer.strides[0]
             kernel = layer.kernel_size[0]
             print(f"Stride = ({stride} , Kernel ({kernel}))")
-            if stride == 1:
+            if stride == 0:
+                return OperatorType['Conv2D']
+            elif stride == 1:
                 if kernel == 1:
                     return OperatorType.Conv2D1x1
                 elif kernel == 3:
-                    return OperatorType.Conv2D3x3
+                    #return OperatorType.Conv2D
+                    return OperatorType['Conv2D']
                 else:
                     print("MODEL USED IS CONV")
-                    return OperatorType.Conv2D
+                    return OperatorType['Conv2D']
             elif stride == 2:
                 if kernel == 2:
                     return OperatorType.Conv2D3x3S2

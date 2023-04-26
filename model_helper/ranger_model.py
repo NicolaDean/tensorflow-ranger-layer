@@ -15,6 +15,10 @@ class RANGER_HELPER():
 
     def __init__(self,model):
         self.model = model
+        self.put_after = [keras.layers.Conv2D,keras.layers.MaxPool2D]
+
+    def set_put_ranger_after(self,layers):
+        self.put_after = layers
 
     '''
     Find all Ranger layer in the network and set theyr mode to a specific one
@@ -36,7 +40,7 @@ class RANGER_HELPER():
                 block_layers = [layer for layer in l.layers]
                 new_block = RANGER_HELPER.convert_block(block_layers)
                 new_layer.add(new_block)
-            if isinstance(l,keras.layers.Conv2D) or isinstance(l,keras.layers.MaxPool2D):
+            if isinstance(l,keras.layers.Conv2D) or isinstance(l,keras.layers.MaxPool2D): #TODO PUT A FOR CYCLE ON "put_after"
                 print(f"Added Ranger after layer: {l.name}")
                 new_layer.add(l)
                 new_layer.add(Ranger("ranger_" + l.name))
