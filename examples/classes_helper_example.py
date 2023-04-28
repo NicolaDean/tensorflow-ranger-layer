@@ -103,21 +103,16 @@ RANGER.get_model().summary()
 ranger_model = RANGER.get_model()
 ranger_model.summary()
 
-RANGER.set_ranger_mode(RangerModes.Inference)
-RANGER.set_ranger_mode(RangerModes.RangeTuning)
-for x in tqdm(x_val):
-    ranger_model.predict(np.expand_dims(x, 0), verbose = 0)
-
-RANGER.set_ranger_mode(RangerModes.Inference)
-
-
+#TUNE THE LAYERS RANGE DOMAIN
+RANGER.tune_model_range(x_val)
 
 #Load Model into Ranger Helper
-CLASSES = CLASSES_HELPER(model)
+CLASSES = CLASSES_HELPER(ranger_model)
 #Add Ranger Layer after each Convolutions or Maxpool
 CLASSES.convert_model(num_requested_injection_sites)
 classes_model = CLASSES.get_model()
 classes_model.summary()
+classes_model.run_eagerly = True
 
 CLASSES.set_mode("conv2d",ErrorSimulatorMode.disabled)
 CLASSES.set_mode("conv2d_1",ErrorSimulatorMode.enabled)
@@ -131,7 +126,7 @@ test_sample(ranger_model,NUM,"RANGER")
 RANGER.set_ranger_mode(RangerModes.Disabled)
 test_sample(classes_model,NUM,"CLASSES")
 RANGER.set_ranger_mode(RangerModes.Inference)
-test_sample(classes_model,NUM,"CLASSES")
+test_sample(classes_model,NUM,"CLASSES + RANGER-CLIPPING")
 exit()
 
 #--------------Try Launching one fault per layer----------------------
