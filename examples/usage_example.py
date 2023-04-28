@@ -37,7 +37,7 @@ def load_data():
 x_train, y_train, x_val, y_val = load_data()
 
 #Build the model
-model = VGG16(x_train[0].shape)
+model = LeNet(x_train[0].shape)
 model.summary()
 
 #Load Model into Ranger Helper
@@ -48,7 +48,7 @@ RANGER.get_model().summary()
 
 #Extract the new Model containing Ranger
 ranger_model = RANGER.get_model()
-
+ranger_model.run_eagerly = True
 #Compute the Range Domain of each Layer by putting Ranger in "RangeTuning" mode
 RANGER.set_ranger_mode(RangerModes.RangeTuning)
 #Emulate the tuning process

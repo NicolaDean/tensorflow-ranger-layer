@@ -13,7 +13,7 @@ CLASSES_MODULE_PATH = "/../"
 directory = str(pathlib.Path(__file__).parent.parent.absolute())
 sys.path.append(directory + CLASSES_MODULE_PATH)
 
-from classes import *
+from classess import *
 
 '''
 Take in input a classic CNN and add CLASSES ErrorSimulator layer for each Compatible Layer (All Layer for which we have an error Model)
@@ -47,7 +47,7 @@ def convert_block(layers,num_of_injection_sites) -> functional.Functional:
                                                                           str(inverted_shape), str(shape))
             
             new_layer.add(l)
-            new_layer.add(ErrorSimulator(available_injection_sites, masks,num_of_injection_sites,name="classes_" + l.name))
+            new_layer.add(ErrorSimulator(available_injection_sites, masks,len(available_injection_sites),name="classes_" + l.name))
 
         elif isinstance(l,functional.Functional):
             block_layers = [layer for layer in l.layers]
@@ -67,6 +67,8 @@ class CLASSES_HELPER():
         self.model      = model #Model that we want to test.
         self.misc_mask  = None  #Contain a mask with 0 if vanilla model classify wrong, 1 if vanilla model classify ok
 
+    def set_model(self,model):
+        self.model = model
     def convert_model(self,num_of_injection_sites):
         self.model = convert_model_from_src(self.model,num_of_injection_sites)
 
@@ -88,15 +90,15 @@ class CLASSES_HELPER():
             kernel = layer.kernel_size[0]
             print(f"Stride = ({stride} , Kernel ({kernel}))")
             if stride == 0:
-                return OperatorType['Conv2D']
+                return OperatorType['Conv2D3x3']
             elif stride == 1:
                 if kernel == 1:
                     return OperatorType.Conv2D1x1
                 elif kernel == 3:
                     #return OperatorType.Conv2D
-                    return OperatorType['Conv2D']
+                    return OperatorType['Conv2D3x3S2']
                 else:
-                    print("MODEL USED IS CONV")
+                    #return OperatorType['Conv2D3x3']
                     return OperatorType['Conv2D']
             elif stride == 2:
                 if kernel == 2:

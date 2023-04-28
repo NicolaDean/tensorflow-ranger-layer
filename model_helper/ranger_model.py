@@ -17,6 +17,9 @@ class RANGER_HELPER():
         self.model = model
         self.put_after = [keras.layers.Conv2D,keras.layers.MaxPool2D]
 
+    def set_model(self,model):
+        self.model = model
+        
     def set_put_ranger_after(self,layers):
         self.put_after = layers
 
