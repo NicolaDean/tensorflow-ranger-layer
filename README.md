@@ -1,7 +1,15 @@
 # Tensorflow Ranger CNN
+:warning: **[WORK IN PROGRESS]** :warning:\
 This is a Tensorflow Implementation of the ranger layer concept described in various paper:
-
-TODO => ADD THE __init__.py files both in Classes and in Ranger
+[Ranger Paper](https://arxiv.org/pdf/2003.13874.pdf)
+# TODO LIST of Features:
+- [ ] Add __init__.py to make ranger easily includable
+- [x] Make Ranger Layer modes compatible with tesnorflow op graph (to make them work outside of eager mode)
+- [x] Automatically generate Fault Injection Campaign csv report
+- [x] Automatically add Ranger after All Convolution and Maxpool from existing models as input
+- [x] Helper Function To set Ranger Layers mode in an easy/fast way
+- [ ] Make easier to create a model with both Fault Injection Points and Ranger
+- [ ] Create an Helper class for Fault Aware Training
 
 # Principle IDEA:
 The scope of this layer is to imporve reliability/robustness of CNN layers against Fault Tollerance of GPU.
