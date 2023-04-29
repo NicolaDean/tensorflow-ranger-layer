@@ -106,14 +106,8 @@ class Ranger(keras.layers.Layer):
         self.w = tf.Variable(initial_value = (range_min, range_max), trainable = False)
         self.record = False         #state if the range can be evaluated -> TRUE in the middle between training and final inference
     
-        
-    def call(self, inputs):
-        if self.mode == RangerModes.Disabled or self.mode == RangerModes.Training:
-            #tf.print("Disabled",output_stream=sys.stdout)
-            return inputs
-
-        elif self.mode == RangerModes.RangeTuning:
-            #tf.print("RangeTuning",output_stream=sys.stdout)
+    def range_tuning(self,inputs):
+            tf.print("RangeTuning",output_stream=sys.stdout)
             inp = tf.reshape(inputs, inputs.shape[1:])
             #update ranges -> no effect on the final result
             #w = self.get_weights()[0]
@@ -159,7 +153,8 @@ class Ranger(keras.layers.Layer):
 
             #let intermediate pass through without any modifications
             return inputs
-        elif self.mode == RangerModes.Inference:
+    
+    def apply_range_threshold(self,inputs):
             #tf.print("Inference",output_stream=sys.stdout)
             #final inference
             range_min   = self.w[0]
@@ -182,8 +177,23 @@ class Ranger(keras.layers.Layer):
             elif self.policy == RangerPolicies.Ranger:
                 #return tf.matmul(merged_mask,inputs) + tf.matmul(bool_max,range_max) + tf.matmul(bool_min , range_min)
                 return merged_mask * inputs + bool_max * range_max + bool_min * range_min
+    
+    def ranger_mode(self,inputs):
+        range       = lambda: self.range_tuning(inputs)
+        inference   = lambda: self.apply_range_threshold(inputs)
 
-        else:
-            return inputs
+        return tf.cond(self.mode == tf.constant([[int(RangerModes.RangeTuning)]]),
+                       true_fn  = range,
+                       false_fn = inference)
+    
+    def call(self, inputs):
+        true_fn     = lambda: inputs
+        false_fn    = lambda: self.ranger_mode(inputs)
+        
+        return tf.cond(self.mode == tf.constant([[int(RangerModes.Disabled)]]) or self.mode == tf.constant([[int(RangerModes.Training)]]),
+                true_fn  = true_fn,
+                false_fn = false_fn
+        )
+                                         
 
         

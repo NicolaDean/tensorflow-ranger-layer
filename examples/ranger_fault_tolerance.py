@@ -111,7 +111,7 @@ CLASSES = CLASSES_HELPER(ranger_model)
 CLASSES.convert_model(num_requested_injection_sites)
 classes_model = CLASSES.get_model()
 classes_model.summary()
-classes_model.run_eagerly = True
+#classes_model.run_eagerly = True
 
 CLASSES.set_mode("conv2d",ErrorSimulatorMode.enabled)
 CLASSES.set_mode("conv2d_1",ErrorSimulatorMode.disabled)
