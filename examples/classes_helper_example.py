@@ -26,8 +26,8 @@ def load_data():
     x_train = tf.pad(x_train, [[0, 0], [2, 2], [2, 2]]) / 255
     x_train = tf.expand_dims(x_train, axis=3, name=None)
 
-    x_val = x_train[-1:, :, :, :]
-    y_val = y_train[-1:]
+    x_val = x_train[-100:, :, :, :]
+    y_val = y_train[-100:]
     x_train = x_train[:-2000, :, :, :]
     y_train = y_train[:-2000]
 
@@ -74,7 +74,6 @@ CLASSES = CLASSES_HELPER(model)
 CLASSES.convert_model(num_requested_injection_sites)
 classes_model = CLASSES.get_model()
 classes_model.summary()
-classes_model.run_eagerly = True
 
 CLASSES.set_mode("conv2d",ErrorSimulatorMode.disabled)
 CLASSES.set_mode("conv2d_1",ErrorSimulatorMode.disabled)
