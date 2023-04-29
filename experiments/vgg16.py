@@ -23,11 +23,17 @@ from models import VGG16
 
 def load_data():
     (x_train, y_train), (x_test, y_test) = datasets.mnist.load_data()
-    x_train = tf.pad(x_train, [[0, 0], [2, 2], [2, 2]]) / 255
-    x_train = tf.expand_dims(x_train, axis=3, name=None)
+    x_train = np.dstack([x_train] * 3)
+    x_test = np.dstack([x_test] * 3)
 
-    x_val = x_train[-1:, :, :, :]
-    y_val = y_train[-1:]
+    x_train = x_train.reshape(-1, 28,28,3)
+    x_test = x_test.reshape(-1,28,28,3)
+
+    x_train = np.asarray([img_to_array(array_to_img(im, scale=False).resize((48,48))) for im in x_train])
+    x_test = np.asarray([img_to_array(array_to_img(im, scale=False).resize((48,48))) for im in x_test])
+
+    x_val = x_train[-100:, :, :, :]
+    y_val = y_train[-100:]
     x_train = x_train[:-2000, :, :, :]
     y_train = y_train[:-2000]
 
@@ -35,7 +41,7 @@ def load_data():
 
 def build_model(load_model_from_memory=False):
     #Build the model
-    path_weights = os.path.join(WEIGHT_FILE_PATH,'Lenet2')
+    path_weights = os.path.join(WEIGHT_FILE_PATH,'VGG16')
     print(f"Load weights from => {path_weights}")
     if path_weights is not None and load_model_from_memory:
         model = keras.models.load_model(path_weights)
@@ -47,7 +53,7 @@ def build_model(load_model_from_memory=False):
                 metrics=['accuracy'])
         model.fit(x_train, y_train, epochs=2)
 
-        model.save(WEIGHT_FILE_PATH + "Lenet2")
+        model.save(WEIGHT_FILE_PATH + "Vgg16")
     model.summary()
     return model
 #--------------------------------------------------------------------------------------------------
