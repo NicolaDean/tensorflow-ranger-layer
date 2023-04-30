@@ -13,7 +13,7 @@ import pandas as pd
 from dataclasses import make_dataclass
 
     
-Fault_injection_Report = make_dataclass("Fault_injection_Report", [("layer_name",str),("sample_id", int), ("num_of_injection", int), ("misclassifications", int),("fault_tollerance",bool)])
+Fault_injection_Report = make_dataclass("Fault_injection_Report", [("layer_name",str),("sample_id", int), ("num_of_injection", int), ("misclassifications", int),("experiment",str)])
 
 
 CLASSES_MODULE_PATH = "/../"
@@ -45,9 +45,15 @@ class CLASSES_HELPER():
 
     def set_model(self,model):
         self.model = model
+    
+    '''
+    Convert a Model by adding Injection points after each Convolution
+    '''
     def convert_model(self,num_of_injection_sites):
+        self.vanilla_model = self.model
         self.model = self.convert_model_from_src(self.model,num_of_injection_sites)
         self.num_of_injection = math.floor(num_of_injection_sites / 5)
+
 
     
     def get_model(self):
@@ -183,7 +189,7 @@ class CLASSES_HELPER():
     Given a Dataset and an injection point
     return the report of injection campaing on that layer
     '''
-    def get_layer_injection_report(self,layer_name,X,Y,is_fault_tollerance_on=False):
+    def get_layer_injection_report(self,layer_name,X,Y,experiment_name="Generic"):
         #TODO Check that this is an ErrorSimulator Layer
 
         self.disable_all()                          #Disable all InjectionPoints
@@ -195,19 +201,26 @@ class CLASSES_HELPER():
         print("--------------------------------------------------")
         print("--------------------------------------------------")
         report = []
+        vanilla_errors = 0
         #For each Sample in the dataset
         for i,dataset in enumerate(zip(X,Y)):
             x,y = dataset
-            #For "Num_of_injection" run we inject a random fault using the error model
-            errors = 0
-            for _ in range(self.num_of_injection):
-                res = self.model.predict(np.expand_dims(x, 0), verbose = 0)
-                if np.argmax(res) != y:
-                    errors += 1
-            line_report = Fault_injection_Report(layer_name,i,self.num_of_injection,errors,is_fault_tollerance_on)
-            report += [line_report]
-            print(f'[Layer: {layer_name}] => [Sample: {i}] Number of misclassification over {self.num_of_injection} injections: {errors}') 
 
+            vanilla_res = self.vanilla_model.predict(np.expand_dims(x, 0), verbose = 0)
+
+            if np.argmax(vanilla_res) == y:
+                #For "Num_of_injection" run we inject a random fault using the error model
+                errors = 0
+                for _ in range(self.num_of_injection):
+                    res = self.model.predict(np.expand_dims(x, 0), verbose = 0)
+                    if np.argmax(res) != y:
+                        errors += 1
+                line_report = Fault_injection_Report(layer_name,i,self.num_of_injection,errors,experiment_name)
+                report += [line_report]
+                print(f'[Layer: {layer_name}] => [Sample: {i}] Number of misclassification over {self.num_of_injection} injections: {errors}') 
+            else:
+                print(f"Sample: {i} Misclassified by vanilla model")
+                vanilla_errors += 1
         #report = pd.DataFrame(report)
         #print(report)
         return report
@@ -221,12 +234,12 @@ class CLASSES_HELPER():
     1) concat_previous  = True will concatenate the previously generated report with the new one to facilitate creation of dataframe for complex experiments
     2) fault_tollerance = True will simply add to the Dataframe a column to indicate the presence of FaultTollerance techniques
     '''
-    def gen_model_injection_report(self,X,Y,fault_tollerance=False,concat_previous=False) -> pd.DataFrame:
+    def gen_model_injection_report(self,X,Y,experiment_name="Generic",concat_previous=False) -> pd.DataFrame:
 
         #For Each Injection Point
         report = []
         for l in self.injection_points:
-            layer_report = self.get_layer_injection_report(l,X,Y)
+            layer_report = self.get_layer_injection_report(l,X,Y,experiment_name)
             report += layer_report
 
         report = pd.DataFrame(report)

@@ -85,10 +85,12 @@ class RANGER_HELPER():
     After it finish the process it set the model in inference mode
     '''
     def tune_model_range(self,X):
+        print("Tuning the moodel Range Domain")
         self.set_ranger_mode(RangerModes.RangeTuning)
         for x in tqdm(X):
             self.model.predict(np.expand_dims(x, 0), verbose = 0)
         
+        #TODO => PRINT THE MODELS RANGE
         self.set_ranger_mode(RangerModes.Inference)
 
     '''

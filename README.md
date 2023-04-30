@@ -11,6 +11,9 @@ This is a Tensorflow Implementation of the ranger layer concept described in var
 - [ ] Make easier to create a model with both Fault Injection Points and Ranger
 - [ ] Create an Helper class for Fault Aware Training
 
+# TODO LIST of Examples:
+- [ ] Move DataLoading functions and Training functions inside the models itself.
+
 # Principle IDEA:
 The scope of this layer is to imporve reliability/robustness of CNN layers against Fault Tollerance of GPU.
 To do so, it introduce a domain range for each layer (here is the name Ranger) and for each inference it will handle in adeguate way the outsider values.

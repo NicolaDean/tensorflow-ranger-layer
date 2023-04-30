@@ -25,12 +25,12 @@ def load_data():
     x_train = tf.pad(x_train, [[0, 0], [2, 2], [2, 2]]) / 255
     x_train = tf.expand_dims(x_train, axis=3, name=None)
 
-    x_val = x_train[-200:, :, :, :]
-    y_val = y_train[-200:]
+    x_val = x_train[-2000:, :, :, :]
+    y_val = y_train[-2000:]
     x_train = x_train[:-2000, :, :, :]
     y_train = y_train[:-2000]
 
-    return x_train, y_train, x_val, y_val
+    return x_train, y_train, x_val, y_val, x_test, y_test
 
 def load_data_vgg():
     (x_train, y_train), (x_test, y_test) = datasets.mnist.load_data()
@@ -56,12 +56,12 @@ def load_data_vgg():
 #--------------------------------------------------------------------------------------------------
 
 #Load Data from dataset
-x_train, y_train, x_val, y_val = load_data()
+x_train, y_train, x_val, y_val, x_test, y_test = load_data()
 
-LOAD_MODEL = True
-
+LOAD_MODEL = False
+MODEL_NAME = "Lenet3"
 #Build the model
-path_weights = os.path.join(WEIGHT_FILE_PATH,'Lenet2')
+path_weights = os.path.join(WEIGHT_FILE_PATH,MODEL_NAME)
 print(f"Load weights from => {path_weights}")
 if path_weights is not None and LOAD_MODEL:
     model = keras.models.load_model(path_weights)
@@ -71,9 +71,9 @@ else:
     model.compile(optimizer='adam',
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
-    model.fit(x_train, y_train, epochs=2)
-
-    model.save(WEIGHT_FILE_PATH + "Lenet2")
+    model.compile(optimizer='adam', loss=losses.sparse_categorical_crossentropy, metrics=['accuracy'])
+    history = model.fit(x_train, y_train, batch_size=64, epochs=10, validation_data=(x_val, y_val))
+    model.save(WEIGHT_FILE_PATH + MODEL_NAME)
 model.summary()
 
 def test_sample(model,sample_index,name):

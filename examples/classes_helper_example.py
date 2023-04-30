@@ -66,14 +66,6 @@ NUM_INJECTIONS = 100
 NUM = 42
 
 num_requested_injection_sites = NUM_INJECTIONS * 5
-batch       = [x_val[NUM]] * NUM_INJECTIONS
-y_batch     = [y_val[NUM]] * NUM_INJECTIONS
-batch       = tf.stack(batch)
-y_batch     = tf.stack(y_batch)
-
-print(y_batch.shape)
-print(batch.shape)
-
 #Load Model into Ranger Helper
 CLASSES = CLASSES_HELPER(model)
 
@@ -88,16 +80,20 @@ CLASSES.set_mode("conv2d_2",ErrorSimulatorMode.enabled)
 
 print("---------MODELS COMPARISON----------------")
 
-m = tf.keras.metrics.Accuracy()
-
-pred = classes_model.predict(batch)
-pred = np.argmax(pred,axis=1)
-
-
-m.update_state(y_batch,pred)
-print(m.result().numpy())
-exit()
 #CLASSES.get_layer_injection_report("classes_conv2d_1",x_val,y_val)
 report = CLASSES.gen_model_injection_report(x_val,y_val,concat_previous=True)
 
 report.to_csv("report_" + classes_model.name)
+
+
+
+
+'''
+batch       = [x_val[NUM]] * NUM_INJECTIONS
+y_batch     = [y_val[NUM]] * NUM_INJECTIONS
+batch       = tf.stack(batch)
+y_batch     = tf.stack(y_batch)
+
+print(y_batch.shape)
+print(batch.shape)
+'''

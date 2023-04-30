@@ -106,21 +106,24 @@ class Ranger(keras.layers.Layer):
         self.w = tf.Variable(initial_value = (range_min, range_max), trainable = False)
         self.record = False         #state if the range can be evaluated -> TRUE in the middle between training and final inference
     
+    '''
+    Compute the Layer Domain of values
+    '''
     def range_tuning(self,inputs):
-            tf.print("RangeTuning",output_stream=sys.stdout)
+            #tf.print("RangeTuning",output_stream=sys.stdout)
             inp = tf.reshape(inputs, inputs.shape[1:])
             #update ranges -> no effect on the final result
             #w = self.get_weights()[0]
 
             range_min = self.w[0]
             range_max = self.w[1]
-            #tf.print("Weights :", range_min,range_max, output_stream=sys.stdout)
-            bool_max        = range_max >= inp
+            #tf.print("Range :", range_min,range_max, output_stream=sys.stdout)
+            bool_max        = tf.greater_equal(range_max,inp)
             bool_max        = tf.cast(bool_max, tf.float32)
             not_bool_max    = tf.ones(bool_max.shape) - bool_max
             range_max       = bool_max * range_max + not_bool_max * inp
 
-            bool_min        = range_min <= inp
+            bool_min        = tf.less_equal(range_min,inp)
             bool_min        = tf.cast(bool_min, tf.float32)
             not_bool_min    = tf.ones(bool_min.shape) - bool_min
             range_min       = bool_min*range_min + not_bool_min*inp
@@ -140,11 +143,7 @@ class Ranger(keras.layers.Layer):
             
             
             #tf.print("RANGE :", range_min,range_max, output_stream=sys.stdout)
-            #w = np.array([range_min, range_max])
-            
 
-            #In tf2.0 non si puo usare get o set durante la call, e non si puo convertire in numpy durante la call
-            #Per evitare di usare numpy dentro call
             tmp_w.append(range_min)
             tmp_w.append(range_max)
 
@@ -154,6 +153,9 @@ class Ranger(keras.layers.Layer):
             #let intermediate pass through without any modifications
             return inputs
     
+    '''
+    Apply the threshold clipping or threshold
+    '''
     def apply_range_threshold(self,inputs):
             #tf.print("Inference",output_stream=sys.stdout)
             #final inference
@@ -178,6 +180,9 @@ class Ranger(keras.layers.Layer):
                 #return tf.matmul(merged_mask,inputs) + tf.matmul(bool_max,range_max) + tf.matmul(bool_min , range_min)
                 return merged_mask * inputs + bool_max * range_max + bool_min * range_min
     
+    '''
+    Create a TF graph to switch between inference and range threshold
+    '''
     def ranger_mode(self,inputs):
         range       = lambda: self.range_tuning(inputs)
         inference   = lambda: self.apply_range_threshold(inputs)
