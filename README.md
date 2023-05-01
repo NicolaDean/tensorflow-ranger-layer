@@ -10,9 +10,11 @@ This is a Tensorflow Implementation of the ranger layer concept described in var
 - [x] Helper Function To set Ranger Layers mode in an easy/fast way
 - [ ] Make easier to create a model with both Fault Injection Points and Ranger
 - [ ] Create an Helper class for Fault Aware Training
+- [ ] Make Ranger Batch Compatible to enable possibility of "Range Tune" using fit function (Faster than single prediction)
 
 # TODO LIST of Examples:
 - [ ] Move DataLoading functions and Training functions inside the models itself.
+- [ ] Fix Vgg16 Example (Some problem adding classes to Tensorflow Functional Models (????))
 
 # Principle IDEA:
 The scope of this layer is to imporve reliability/robustness of CNN layers against Fault Tollerance of GPU.
@@ -23,8 +25,10 @@ To do so, it introduce a domain range for each layer (here is the name Ranger) a
 3. Clip them to the mean of the layer values.
    
 # Paper of reference:
-#TODO
+- [Ranger Paper](https://arxiv.org/pdf/2003.13874.pdf)
 
+# TUTORIAL:
+ TODO
 # RANGER helper class features:
 1. Allow a plug and play approach to ranger by simply convert existing models in 100% automatic way.
 2. Allow to easily Disable, Put in Train Mode, Put in Inference mode all the Ranger layers automatically.
