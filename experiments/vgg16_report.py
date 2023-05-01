@@ -51,13 +51,12 @@ def build_model(load_model_from_memory=False):
     else:
         print(f"NO MODEL FAULD AT {path_weights} => Loading Classic LeNet")
         model = VGG16(x_train[0].shape)
-        '''
+        
         model.compile(optimizer='adam',
                 loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                 metrics=['accuracy'])
         history = model.fit(x_train, y_train, batch_size=64, epochs=10, validation_data=(x_val, y_val))
         model.save(WEIGHT_FILE_PATH + MODEL_NAME)
-        '''
     model.summary()
     return model
 
@@ -138,7 +137,7 @@ ranger  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Rang
 #TODO ADD Clipping_Layer , Threshold_Value, Threshold_layer
 
 report = pd.concat([vanilla,ranger])
-report.to_csv("lenet_ranger.csv")
+report.to_csv("vgg16_ranger.csv")
 
 print(report)
 
