@@ -135,11 +135,12 @@ class Ranger(keras.layers.Layer):
         self.w.assign(w)
         
         return inputs
-
+    
     '''
     Apply the threshold clipping or threshold
     '''
     def apply_range_threshold_v2(self,inputs):
+        #TODO CONVERT CODE TO USE https://www.tensorflow.org/api_docs/python/tf/clip_by_value in the Clipper version
         range_min   = self.w[0]
         range_max   = self.w[1]
 
