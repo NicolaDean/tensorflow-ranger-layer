@@ -20,7 +20,7 @@ from model_helper.classes_model import *
 from models import LeNet
 from models import VGG16
 
-VALIDATION_SIZE = 1
+VALIDATION_SIZE = 10
 MODEL_NAME = "Lenet3"
 
 def load_data():
@@ -91,14 +91,14 @@ ranger_model.summary()
 
 RANGE_TUNE_EPOCH_SIZE = 500
 #TUNE THE LAYERS RANGE DOMAIN
-RANGER.tune_model_range(x_train[-RANGE_TUNE_EPOCH_SIZE:, :, :, :])
+RANGER.tune_model_range(x_train)
 
 #--------------------------------------------------------------------------------------------------
 #--------------------------CLASSES SETUP-----------------------------------------------------------
 #--------------------------------------------------------------------------------------------------
 
 
-NUM_INJECTIONS = 100
+NUM_INJECTIONS = 300
 NUM = 42
 
 num_requested_injection_sites = NUM_INJECTIONS * 5

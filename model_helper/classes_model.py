@@ -33,6 +33,22 @@ class CLASSES_MODELS_PATH:
     models_warp = original_models_path + "/models_warp"
 
 
+def gen_batch(x,y,batch_size):
+    batch       = [x] * batch_size
+    y_batch     = [y] * batch_size
+    batch       = tf.stack(batch)
+    y_batch     = tf.stack(y_batch)
+
+    return batch,y_batch
+
+def count_misclassification(predictions,labels):
+    labels      = tf.argmax(labels, 1)
+
+    labels      = tf.cast(labels        ,tf.int32)
+    predictions = tf.cast(predictions   ,tf.int32)
+
+    result      = tf.reduce_sum(tf.cast(tf.not_equal(labels,predictions), tf.int32)).numpy()
+    return result
 
 '''
 This is an HELPER class to easily work with the CLASSES framwork on existing models (without having to write boilerplate code by hand)
@@ -189,7 +205,7 @@ class CLASSES_HELPER():
     Given a Dataset and an injection point
     return the report of injection campaing on that layer
     '''
-    def get_layer_injection_report(self,layer_name,X,Y,experiment_name="Generic"):
+    def get_layer_injection_report(self,layer_name,X,Y,experiment_name="Generic",num_of_iteration=100):
         #TODO Check that this is an ErrorSimulator Layer
 
         self.disable_all()                          #Disable all InjectionPoints
@@ -209,14 +225,22 @@ class CLASSES_HELPER():
             vanilla_res = self.vanilla_model.predict(np.expand_dims(x, 0), verbose = 0) #TODO make it using a "Vanilla-mask" instead of predicting every time
 
             if np.argmax(vanilla_res) == y:
+                BATCH_SIZE = 64
+                x_batch,y_batch = gen_batch(x,y,batch_size=self.num_of_injection)
+                pred = self.model.predict(x_batch,batch_size=BATCH_SIZE)
+                errors = count_misclassification(y_batch,pred)
+
+                '''
                 #For "Num_of_injection" run we inject a random fault using the error model
                 errors = 0
                 for _ in range(self.num_of_injection):
                     res = self.model.predict(np.expand_dims(x, 0), verbose = 0)
                     if np.argmax(res) != y:
                         errors += 1
+                '''
                 line_report = Fault_injection_Report(layer_name,i,self.num_of_injection,errors,experiment_name)
                 report += [line_report]
+                
                 print(f'[Layer: {layer_name}] => [Sample: {i}] Number of misclassification over {self.num_of_injection} injections: {errors}') 
             else:
                 print(f"Sample: {i} Misclassified by vanilla model")
@@ -234,12 +258,12 @@ class CLASSES_HELPER():
     1) concat_previous  = True will concatenate the previously generated report with the new one to facilitate creation of dataframe for complex experiments
     2) fault_tollerance = True will simply add to the Dataframe a column to indicate the presence of FaultTollerance techniques
     '''
-    def gen_model_injection_report(self,X,Y,experiment_name="Generic",concat_previous=False) -> pd.DataFrame:
+    def gen_model_injection_report(self,X,Y,experiment_name="Generic",num_of_iteration=100,concat_previous=False) -> pd.DataFrame:
 
         #For Each Injection Point
         report = []
         for l in self.injection_points:
-            layer_report = self.get_layer_injection_report(l,X,Y,experiment_name)
+            layer_report = self.get_layer_injection_report(l,X,Y,experiment_name,num_of_iteration)
             report += layer_report
 
         report = pd.DataFrame(report)

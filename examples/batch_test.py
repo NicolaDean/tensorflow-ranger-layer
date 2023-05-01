@@ -130,8 +130,23 @@ model           .compile(optimizer='adam', loss=losses.sparse_categorical_crosse
 ranger_model    .compile(optimizer='adam', loss=losses.sparse_categorical_crossentropy, metrics=['accuracy'])
 classes_model   .compile(optimizer='adam', loss=losses.sparse_categorical_crossentropy, metrics=['accuracy'])
 
+'''
 model           .evaluate(batch, y_batch, batch_size=128)
 ranger_model    .evaluate(batch, y_batch, batch_size=128)
 classes_model   .evaluate(batch, y_batch, batch_size=128)
+'''
+
+vanilla_p          = model         .predict(batch,batch_size=64)
+classes_p          = classes_model .predict(batch,batch_size=64)
+classes_p2         = classes_model .predict(batch,batch_size=64)
+classes_p3         = classes_model .predict(batch,batch_size=64)
+
+
+print(y_batch.shape)
+vanilla_misc = count_misclassification(y_batch,vanilla_p)
+classes_misc = count_misclassification(y_batch,classes_p)
+classes_p2   = count_misclassification(y_batch,classes_p2)
+classes_p3   = count_misclassification(y_batch,classes_p3)
+print(f"Vanilla [ {vanilla_misc} ] vs Classes [ {classes_misc} ]")
 
 #RANGER.set_model(classes_model)
