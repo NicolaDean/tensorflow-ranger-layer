@@ -206,7 +206,7 @@ class CLASSES_HELPER():
         for i,dataset in enumerate(zip(X,Y)):
             x,y = dataset
 
-            vanilla_res = self.vanilla_model.predict(np.expand_dims(x, 0), verbose = 0)
+            vanilla_res = self.vanilla_model.predict(np.expand_dims(x, 0), verbose = 0) #TODO make it using a "Vanilla-mask" instead of predicting every time
 
             if np.argmax(vanilla_res) == y:
                 #For "Num_of_injection" run we inject a random fault using the error model

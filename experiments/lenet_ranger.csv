@@ -1,7 +1,1 @@
-,layer_name,sample_id,num_of_injection,misclassifications,experiment
-0,classes_conv2d,0,100,12,FaultInjection
-1,classes_conv2d_1,0,100,15,FaultInjection
-2,classes_conv2d_2,0,100,19,FaultInjection
-0,classes_conv2d,0,100,1,Ranger_Clipping_Value
-1,classes_conv2d_1,0,100,4,Ranger_Clipping_Value
-2,classes_conv2d_2,0,100,3,Ranger_Clipping_Value
+""

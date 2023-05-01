@@ -37,5 +37,6 @@ def VGG16(input_shape):
     x = layers.Flatten()(x) 
     x = layers.Dense(units = 500, activation = 'relu')(x)
     output = layers.Dense(units = 10, activation ='softmax')(x)
-    model = keras.Model (inputs=input, outputs =output)
+    model = keras.Model(inputs=input, outputs =output)
+    model.build(input_shape)
     return model

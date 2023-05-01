@@ -109,6 +109,78 @@ class Ranger(keras.layers.Layer):
     '''
     Compute the Layer Domain of values
     '''
+    def range_tuning_v2(self,inputs):
+        range_min = self.w[0]
+        range_max = self.w[1]
+    
+        if self.granularity == RangerGranularity.Layer:
+            inputs_min = tf.math.reduce_min(inputs)
+            inputs_max = tf.math.reduce_max(inputs)
+           
+        else:
+            inputs_min = inputs
+            inputs_max = inputs
+
+        range_min = tf.where(tf.less_equal   (inputs_min,range_min),inputs_min,range_min)
+        range_max = tf.where(tf.greater_equal(inputs_max,range_max),inputs_max,range_max)
+
+        #tf.print("MINMAX: ",inputs_min,inputs_max)
+        #tf.print("RANGE :", range_min,range_max, output_stream=sys.stdout)
+
+        tmp_w = []
+        tmp_w.append(range_min)
+        tmp_w.append(range_max)
+
+        w = tf.stack(tmp_w) #Crea un array del tipo [range_min,range_max] in tensorflow
+        self.w.assign(w)
+        
+        return inputs
+
+    '''
+    Apply the threshold clipping or threshold
+    '''
+    def apply_range_threshold_v2(self,inputs):
+        range_min   = self.w[0]
+        range_max   = self.w[1]
+
+        upper_threshold = tf.greater_equal(range_max,inputs)
+        lower_threshold = tf.less_equal(range_min,inputs)
+        
+        outputs = inputs
+        if self.policy == RangerPolicies.Clipper:
+            in_range    = tf.logical_and(lower_threshold, upper_threshold)
+            outputs     = tf.where(in_range,inputs,0)
+            return outputs
+        elif self.policy == RangerPolicies.Ranger:
+            output = tf.where(lower_threshold,inputs,range_min)
+            output = tf.where(upper_threshold,output,range_max)
+
+        return output
+    
+    '''
+    Create a TF graph to switch between inference and range threshold
+    '''
+    def ranger_mode(self,inputs):
+        range       = lambda: self.range_tuning_v2(inputs)
+        inference   = lambda: self.apply_range_threshold_v2(inputs)
+
+        return tf.cond(self.mode == tf.constant([[int(RangerModes.RangeTuning)]]),
+                       true_fn  = range,
+                       false_fn = inference)
+    
+    def call(self, inputs):
+        true_fn     = lambda: inputs
+        false_fn    = lambda: self.ranger_mode(inputs)
+        
+        return tf.cond(self.mode == tf.constant([[int(RangerModes.Disabled)]]) or self.mode == tf.constant([[int(RangerModes.Training)]]),
+                true_fn  = true_fn,
+                false_fn = false_fn
+        )
+                                         
+
+
+    '''    
+
     def range_tuning(self,inputs):
             #tf.print("RangeTuning",output_stream=sys.stdout)
             inp = tf.reshape(inputs, inputs.shape[1:])
@@ -142,7 +214,7 @@ class Ranger(keras.layers.Layer):
                 range_min = global_min
             
             
-            #tf.print("RANGE :", range_min,range_max, output_stream=sys.stdout)
+            tf.print("RANGE :", range_min,range_max, output_stream=sys.stdout)
 
             tmp_w.append(range_min)
             tmp_w.append(range_max)
@@ -153,9 +225,6 @@ class Ranger(keras.layers.Layer):
             #let intermediate pass through without any modifications
             return inputs
     
-    '''
-    Apply the threshold clipping or threshold
-    '''
     def apply_range_threshold(self,inputs):
             #tf.print("Inference",output_stream=sys.stdout)
             #final inference
@@ -172,7 +241,7 @@ class Ranger(keras.layers.Layer):
 
             merged_mask = bool_max * bool_min #LOGIC AND => 1 * 1 = 1 /  1 * 0 = 0 / 0 * 1 = 0 / 0 * 0 = 0
             #merged_mask = tf.matmul(bool_max,bool_min)
-
+            
             if self.policy == RangerPolicies.Clipper:
                 #return tf.matmul(merged_mask,inputs)
                 return merged_mask * inputs
@@ -181,24 +250,3 @@ class Ranger(keras.layers.Layer):
                 return merged_mask * inputs + bool_max * range_max + bool_min * range_min
     
     '''
-    Create a TF graph to switch between inference and range threshold
-    '''
-    def ranger_mode(self,inputs):
-        range       = lambda: self.range_tuning(inputs)
-        inference   = lambda: self.apply_range_threshold(inputs)
-
-        return tf.cond(self.mode == tf.constant([[int(RangerModes.RangeTuning)]]),
-                       true_fn  = range,
-                       false_fn = inference)
-    
-    def call(self, inputs):
-        true_fn     = lambda: inputs
-        false_fn    = lambda: self.ranger_mode(inputs)
-        
-        return tf.cond(self.mode == tf.constant([[int(RangerModes.Disabled)]]) or self.mode == tf.constant([[int(RangerModes.Training)]]),
-                true_fn  = true_fn,
-                false_fn = false_fn
-        )
-                                         
-
-        

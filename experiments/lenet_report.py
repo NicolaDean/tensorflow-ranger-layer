@@ -105,7 +105,7 @@ num_requested_injection_sites = NUM_INJECTIONS * 5
 #Load Model into Ranger Helper
 CLASSES = CLASSES_HELPER(ranger_model)
 
-#Add Ranger Layer after each Convolutions or Maxpool
+#Add Fault Injection Layer after each Convolutions or Maxpool
 CLASSES.convert_model(num_requested_injection_sites)
 classes_model = CLASSES.get_model()
 classes_model.summary()
@@ -123,11 +123,14 @@ RANGER.set_model(classes_model) #IMPORTANT (otherwise Ranger.set_ranger_mode wou
 
 print("---------MODELS COMPARISON----------------")
 
+#TODO => USE THE TEST SET FOR NOT BIASED TESTING
 #CLASSES.get_layer_injection_report("classes_conv2d_1",x_val,y_val)
 RANGER.set_ranger_mode(RangerModes.Disabled)
 vanilla = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "FaultInjection",concat_previous=True)
 RANGER.set_ranger_mode(RangerModes.Inference)
 ranger  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Clipping_Value",concat_previous=True)
+
+#TODO ADD Clipping_Layer , Threshold_Value, Threshold_layer
 
 report = pd.concat([vanilla,ranger])
 report.to_csv("lenet_ranger.csv")

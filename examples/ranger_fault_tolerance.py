@@ -58,7 +58,7 @@ def load_data_vgg():
 #Load Data from dataset
 x_train, y_train, x_val, y_val, x_test, y_test = load_data()
 
-LOAD_MODEL = False
+LOAD_MODEL = True
 MODEL_NAME = "Lenet3"
 #Build the model
 path_weights = os.path.join(WEIGHT_FILE_PATH,MODEL_NAME)
@@ -113,8 +113,8 @@ classes_model = CLASSES.get_model()
 classes_model.summary()
 #classes_model.run_eagerly = True
 
-CLASSES.set_mode("conv2d",ErrorSimulatorMode.enabled)
-CLASSES.set_mode("conv2d_1",ErrorSimulatorMode.disabled)
+CLASSES.set_mode("conv2d",ErrorSimulatorMode.disabled)
+CLASSES.set_mode("conv2d_1",ErrorSimulatorMode.enabled)
 CLASSES.set_mode("conv2d_2",ErrorSimulatorMode.disabled)
 
 RANGER.set_model(classes_model)

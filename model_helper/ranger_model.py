@@ -5,6 +5,7 @@ import sys
 from keras.engine import functional
 from keras import Sequential
 from tqdm import tqdm
+from keras import losses
 
 RANGER_MODULE_PATH = "../"
 
@@ -84,13 +85,13 @@ class RANGER_HELPER():
 
     After it finish the process it set the model in inference mode
     '''
-    def tune_model_range(self,X):
+    def tune_model_range(self,X,Y=None):
+        
         print("Tuning the moodel Range Domain")
         self.set_ranger_mode(RangerModes.RangeTuning)
-        for x in tqdm(X):
-            self.model.predict(np.expand_dims(x, 0), verbose = 0)
-        
-        #TODO => PRINT THE MODELS RANGE
+        self.model.predict(X)
+
+        #TODO => PRINT THE MODELS RANGES
         self.set_ranger_mode(RangerModes.Inference)
 
     '''
