@@ -21,7 +21,7 @@ from models import LeNet
 from models import VGG16
 
 VALIDATION_SIZE = 1
-MODEL_NAME = "Vgg16"
+MODEL_NAME = "vgg_mnist"
 
 
 def load_data():
@@ -76,7 +76,7 @@ def build_model(load_model_from_memory=False):
 #Load Data from dataset
 x_train, y_train, x_val, y_val = load_data()
 
-LOAD_MODEL = False
+LOAD_MODEL = True
 model = build_model(LOAD_MODEL)
 
 #--------------------------------------------------------------------------------------------------
