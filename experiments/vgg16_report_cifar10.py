@@ -29,12 +29,9 @@ def load_data():
 
     x_train = x_train.reshape(-1, 32,32,3)
     x_test = x_test.reshape(-1,32,32,3)
-    print(x_train[0][0])
 
     x_train = np.asarray([img_to_array(array_to_img(im, scale=False).resize((48,48))) for im in x_train])
     x_test = np.asarray([img_to_array(array_to_img(im, scale=False).resize((48,48))) for im in x_test])
-    print("AAAA")
-    print(x_train[0][0])
 
     x_val = x_train[-VALIDATION_SIZE:, :, :, :]
     y_val = y_train[-VALIDATION_SIZE:]
@@ -52,9 +49,9 @@ def build_model(load_model_from_memory=False):
     else:
         print(f"NO MODEL FAULD AT {path_weights} => Loading Classic LeNet")
         model = VGG16(x_train[0].shape)
-        
+
         model.compile(optimizer='adam',
-                loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+                loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False),
                 metrics=['accuracy'])
         history = model.fit(x_train, y_train, batch_size=64, epochs=10, validation_data=(x_val, y_val))
         model.save(WEIGHT_FILE_PATH + MODEL_NAME)
@@ -79,7 +76,7 @@ x_train, y_train, x_val, y_val = load_data()
 
 LOAD_MODEL = False
 model = build_model(LOAD_MODEL)
-
+exit()
 #--------------------------------------------------------------------------------------------------
 #--------------------------RANGER SETUP------------------------------------------------------------
 #--------------------------------------------------------------------------------------------------
