@@ -7,10 +7,10 @@ import sys
 from enum import IntEnum
 
 class RangerModes(IntEnum):
-    Training        = 1,
-    RangeTuning     = 2,
-    Inference       = 3,
-    Disabled        = 4,
+    Training        = 0,    #Return input as is
+    RangeTuning     = 1,    #Comput Layer Domain and return input as is
+    Inference       = 2,    #Apply Clipping or threshold to input
+    Disabled        = 3,    #Return input as is
 
 
 #these policy names are taken from the content of "Towards a Safety Case for Hardware Fault Tolerance in Convolutional Neural 
@@ -21,90 +21,60 @@ class RangerPolicies(IntEnum):
 
 #different granularities refer to different 
 class RangerGranularity(IntEnum):
-    Layer           = 0,
-    Value           = 1,
-
-'''
-
-class Ranger(tf.keras.layers.Layer):
-    def __init__(self, name):
-        super(Ranger, self).__init__(name = name)
-    
-    def build(self, input_shape):
-        self.max = tf.experimental.numpy.full(input_shape[1:], tf.dtypes.float32.min, dtype = tf.float32)
-        self.min = tf.experimental.numpy.full(input_shape[1:], tf.dtypes.float32.max, dtype = tf.float32)
-        self.record = False         #state if the range can be evaluated -> TRUE in the middle between training and final inference
-    
-    def call(self, inputs):
-        if self.record:
-            inp = tf.reshape(inputs, inputs.shape[1:])
-            #update ranges -> no effect on the final result
-            bool_max = self.max >= inp
-            
-            bool_max = tf.cast(bool_max, tf.float32)
-            not_bool_max = tf.ones(bool_max.shape) - bool_max
-            self.max = bool_max*self.max + not_bool_max*inp
-
-            bool_min = self.min <= inp
-            bool_min = tf.cast(bool_min, tf.float32)
-            not_bool_min = tf.ones(bool_min.shape) - bool_min
-            self.min = bool_min*self.min + not_bool_min*inp
-
-            #let intermediate pass through without any modifications
-            return inputs
-        else:
-
-            if self.trainable:
-                #during training
-                return inputs
-            else:
-                #final inference
-                bool_max = self.max >= inputs
-                bool_min = self.min <= inputs
-                bool_max = tf.cast(bool_max, tf.float32)
-                bool_min = tf.cast(bool_min, tf.float32)
-                merged_mask = bool_max * bool_min
-                return merged_mask * inputs
-    
-    def set_weights(self, values):
-        self.min = values[0]
-        self.max = values[1]
-    
-    def get_weights(self):
-        return (self.min, self.max)
-'''
+    Layer           = 0,        #Each Layer has a single min/max value
+    Value           = 1,        #Each single value in each layer has a min/max (eg each pixel)
 
 class Ranger(keras.layers.Layer):
     def __init__(self, name):
         super(Ranger, self).__init__(name = name)
-        self.mode = tf.Variable(int(RangerModes.Training),trainable=False)
-        self.policy = RangerPolicies.Clipper
-        self.granularity = RangerGranularity.Layer
+        self.mode        = tf.Variable(int(RangerModes.Training),trainable=False)
+        self.policy      = tf.Variable(int(RangerPolicies.Clipper),trainable=False)#RangerPolicies.Clipper
+        self.granularity = tf.Variable(int(RangerGranularity.Layer),trainable=False)#RangerGranularity.Layer
     
     def set_ranger_mode(self,mode:RangerModes):
         self.mode.assign(int(mode))
     
     def set_ranger_policy(self, policy:RangerPolicies):
-        self.policy = policy
+        self.policy.assign(int(policy))
+        #self.policy = policy
     
     def set_ranger_granularity(self, granularity:RangerGranularity):
-        self.granularity = granularity
+        self.granularity.assign(int(granularity))
+        #self.granularity = granularity
+
+    def is_mode(self,mode:RangerModes):
+        return self.mode == tf.constant([[int(mode)]])
+    def is_granularity(self,mode:RangerGranularity):
+        return self.granularity == tf.constant([[int(mode)]])
+    
+    def print_layer_config(self):
+        tf.print("Granularity: ",RangerGranularity(self.granularity).name)
+        tf.print("Policy     : ",RangerPolicies(self.policy).name)
+        tf.print("Mode       : ",RangerModes(self.mode).name)
 
     def build(self, input_shape):
         #range_max = tf.experimental.numpy.full(input_shape[1:], tf.dtypes.float32.min, dtype = tf.float32)
         #range_min = tf.experimental.numpy.full(input_shape[1:], tf.dtypes.float32.max, dtype = tf.float32)
 
         #Per non usare features sperimentali
-        
-        if self.granularity == RangerGranularity.Layer:
+
+        self.print_layer_config()
+
+        def Layer_granularity():
             range_max = tf.constant(tf.dtypes.float32.min)
             range_min = tf.constant(tf.dtypes.float32.max)
-        else:
+            return (range_min,range_max)
+           
+        
+        def Value_granularity():
             range_max = tf.fill(input_shape,tf.dtypes.float32.min)
             range_min = tf.fill(input_shape,tf.dtypes.float32.max)
+            return (range_min,range_max)
 
-        self.w = tf.Variable(initial_value = (range_min, range_max), trainable = False)
-        self.record = False         #state if the range can be evaluated -> TRUE in the middle between training and final inference
+        is_layer_mode   = self.is_granularity(RangerGranularity.Layer)
+        ranges_w        = tf.cond(is_layer_mode,Layer_granularity,Value_granularity)
+        self.w          = tf.Variable(initial_value = ranges_w, trainable = False)
+        
     
     '''
     Compute the Layer Domain of values
@@ -112,14 +82,16 @@ class Ranger(keras.layers.Layer):
     def range_tuning_v2(self,inputs):
         range_min = self.w[0]
         range_max = self.w[1]
-    
-        if self.granularity == RangerGranularity.Layer:
+
+        def Layer_granularity():
             inputs_min = tf.math.reduce_min(inputs)
             inputs_max = tf.math.reduce_max(inputs)
-           
-        else:
-            inputs_min = inputs
-            inputs_max = inputs
+            return inputs_min,inputs_max
+        def Value_granularity():
+            return inputs,inputs
+        
+        is_layer_mode = self.is_granularity(RangerGranularity.Layer)
+        inputs_min,inputs_max = tf.cond(is_layer_mode,Layer_granularity,Value_granularity)
 
         range_min = tf.where(tf.less_equal   (inputs_min,range_min),inputs_min,range_min)
         range_max = tf.where(tf.greater_equal(inputs_max,range_max),inputs_max,range_max)
@@ -148,18 +120,6 @@ class Ranger(keras.layers.Layer):
         lower_threshold = tf.less_equal(range_min,inputs)
         
         outputs = inputs
-        '''
-        if self.policy == RangerPolicies.Clipper:
-            in_range    = tf.logical_and(lower_threshold, upper_threshold)
-            outputs     = tf.where(in_range,inputs,0)
-            return outputs
-        
-        elif self.policy == RangerPolicies.Ranger:
-            output = tf.where(lower_threshold,inputs,range_min)
-            output = tf.where(upper_threshold,output,range_max)
-
-        return output
-        '''
 
         def Clipper_Policy():
             tf.print("Clipper")
@@ -181,26 +141,18 @@ class Ranger(keras.layers.Layer):
         
         return tf.switch_case(index,cases,default = Default_Policy)
     
-
-    '''
-    Create a TF graph to switch between inference and range threshold
-    '''
-    def ranger_mode(self,inputs):
-        range       = lambda: self.range_tuning_v2(inputs)
-        inference   = lambda: self.apply_range_threshold_v2(inputs)
-
-        return tf.cond(self.mode == tf.constant([[int(RangerModes.RangeTuning)]]),
-                       true_fn  = range,
-                       false_fn = inference)
     
     def call(self, inputs):
-        true_fn     = lambda: inputs
-        false_fn    = lambda: self.ranger_mode(inputs)
-        
-        return tf.cond(self.mode == tf.constant([[int(RangerModes.Disabled)]]) or self.mode == tf.constant([[int(RangerModes.Training)]]),
-                true_fn  = true_fn,
-                false_fn = false_fn
-        )
+        switch_cases = {
+            int(RangerModes.Training)   :lambda: inputs,
+            int(RangerModes.RangeTuning):lambda: self.range_tuning_v2(inputs),
+            int(RangerModes.Inference)  :lambda: self.apply_range_threshold_v2(inputs),
+            int(RangerModes.Disabled)   :lambda: inputs
+        }
+
+        index = tf.constant(int(self.mode))
+        return tf.switch_case(index,switch_cases)
+
                                          
 
 
