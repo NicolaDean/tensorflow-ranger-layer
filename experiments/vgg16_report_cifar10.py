@@ -21,7 +21,7 @@ from models import LeNet
 from models import VGG16
 
 VALIDATION_SIZE = 1
-MODEL_NAME = "vgg_cifar10"
+MODEL_NAME = "VGG16_cifar10"
 
 
 def load_data():
@@ -29,12 +29,9 @@ def load_data():
 
     x_train = x_train.reshape(-1, 32,32,3)
     x_test = x_test.reshape(-1,32,32,3)
-    print(x_train[0][0])
 
     x_train = np.asarray([img_to_array(array_to_img(im, scale=False).resize((48,48))) for im in x_train])
     x_test = np.asarray([img_to_array(array_to_img(im, scale=False).resize((48,48))) for im in x_test])
-    print("AAAA")
-    print(x_train[0][0])
 
     x_val = x_train[-VALIDATION_SIZE:, :, :, :]
     y_val = y_train[-VALIDATION_SIZE:]
@@ -77,7 +74,7 @@ def build_model(load_model_from_memory=False):
 #Load Data from dataset
 x_train, y_train, x_val, y_val = load_data()
 
-LOAD_MODEL = False
+LOAD_MODEL = True
 model = build_model(LOAD_MODEL)
 
 #--------------------------------------------------------------------------------------------------
@@ -93,8 +90,10 @@ RANGER.convert_model()
 
 #Extract the new Model containing Ranger
 ranger_model = RANGER.get_model()
+ranger_model.build(np.expand_dims(x_train[0], 0).shape)
 ranger_model.summary()
 
+exit()
 #TUNE THE LAYERS RANGE DOMAIN
 RANGE_TUNE_EPOCH_SIZE = 500
 RANGER.tune_model_range(x_train[-RANGE_TUNE_EPOCH_SIZE:, :, :, :])

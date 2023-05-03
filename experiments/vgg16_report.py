@@ -137,7 +137,7 @@ ranger  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Rang
 #TODO ADD Clipping_Layer , Threshold_Value, Threshold_layer
 
 report = pd.concat([vanilla,ranger])
-report.to_csv("vgg16_ranger.csv")
+report.to_csv("vgg16_ranger_mnist.csv")
 
 print(report)
 

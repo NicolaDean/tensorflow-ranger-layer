@@ -151,7 +151,7 @@ class CLASSES_HELPER():
 
             elif isinstance(l,functional.Functional):
                 block_layers = [layer for layer in l.layers]
-                new_block = self.convert_block(block_layers)
+                new_block = self.convert_block(block_layers, num_of_injection_sites)
                 new_layer.add(new_block)
             else:
                 new_layer.add(l)
