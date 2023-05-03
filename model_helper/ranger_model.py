@@ -30,11 +30,19 @@ class RANGER_HELPER():
     '''
     Find all Ranger layer in the network and set theyr mode to a specific one
     '''
-    def set_ranger_mode(self,mode:RangerModes):
+    def set_ranger_mode(self,mode=RangerModes.Inference,policy=RangerPolicies.Clipper,granularity=RangerGranularity.Layer):
         layers = [layer for layer in self.model.layers]
         for l in layers:
             if isinstance(l,Ranger):
                 l.set_ranger_mode(mode)
+                l.set_ranger_policy(policy)
+                l.set_ranger_granularity(granularity)
+
+    def reset_ranger_layers(self):
+        layers = [layer for layer in self.model.layers]
+        for l in layers:
+            if isinstance(l,Ranger):
+                l.reset_w()
 
     '''
     Recursively Explore Layer of model subblock in search of Conv and Maxpool to add Ranger after them
@@ -53,6 +61,7 @@ class RANGER_HELPER():
                 new_layer.add(Ranger("ranger_" + l.name))
             else:
                 new_layer.add(l)
+        new_layer.summary()
         return new_layer
         
     '''
@@ -86,7 +95,7 @@ class RANGER_HELPER():
     After it finish the process it set the model in inference mode
     '''
     def tune_model_range(self,X,Y=None):
-        
+        self.reset_ranger_layers()
         print("Tuning the moodel Range Domain")
         self.set_ranger_mode(RangerModes.RangeTuning)
         self.model.predict(X)

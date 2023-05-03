@@ -31,6 +31,9 @@ class Ranger(keras.layers.Layer):
         self.policy      = tf.Variable(int(RangerPolicies.Clipper),trainable=False)#RangerPolicies.Clipper
         self.granularity = tf.Variable(int(RangerGranularity.Layer),trainable=False)#RangerGranularity.Layer
     
+    '''
+    Set the Mode of the ranger layer among the one described in RangerModes class
+    '''
     def set_ranger_mode(self,mode:RangerModes):
         self.mode.assign(int(mode))
     
@@ -51,13 +54,15 @@ class Ranger(keras.layers.Layer):
         tf.print("Granularity: ",RangerGranularity(self.granularity).name)
         tf.print("Policy     : ",RangerPolicies(self.policy).name)
         tf.print("Mode       : ",RangerModes(self.mode).name)
-
-    def build(self, input_shape):
-        #range_max = tf.experimental.numpy.full(input_shape[1:], tf.dtypes.float32.min, dtype = tf.float32)
-        #range_min = tf.experimental.numpy.full(input_shape[1:], tf.dtypes.float32.max, dtype = tf.float32)
-
-        #Per non usare features sperimentali
-
+    
+    def reset_weights(self,input_shape):
+        
+        if(input_shape[0] == None):
+            in_shape = (1,input_shape[1],input_shape[2],input_shape[3])
+        else:
+            in_shape = input_shape
+        
+        #self.input_shape = input_shape
         self.print_layer_config()
 
         def Layer_granularity():
@@ -67,15 +72,19 @@ class Ranger(keras.layers.Layer):
            
         
         def Value_granularity():
-            range_max = tf.fill(input_shape,tf.dtypes.float32.min)
-            range_min = tf.fill(input_shape,tf.dtypes.float32.max)
+            range_max = tf.fill(in_shape,tf.dtypes.float32.min)
+            range_min = tf.fill(in_shape,tf.dtypes.float32.max)
             return (range_min,range_max)
-
+        
         is_layer_mode   = self.is_granularity(RangerGranularity.Layer)
         ranges_w        = tf.cond(is_layer_mode,Layer_granularity,Value_granularity)
         self.w          = tf.Variable(initial_value = ranges_w, trainable = False)
-        
-    
+        tf.print(f"RANGE W has shape: {self.w.shape}")
+
+    def build(self, input_shape):
+        self.shape = input_shape
+        self.reset_weights(input_shape)
+
     '''
     Compute the Layer Domain of values
     '''
@@ -122,13 +131,13 @@ class Ranger(keras.layers.Layer):
         outputs = inputs
 
         def Clipper_Policy():
-            tf.print("Clipper")
+            #tf.print("Clipper")
             in_range    = tf.logical_and(lower_threshold, upper_threshold)
             outputs     = tf.where(in_range,inputs,0)
             return outputs
         
         def Ranger_Policy():
-            tf.print("Ranger")
+            #tf.print("Ranger")
             outputs = tf.where(lower_threshold,inputs ,range_min)
             outputs = tf.where(upper_threshold,outputs,range_max)
             return outputs
@@ -137,11 +146,17 @@ class Ranger(keras.layers.Layer):
             return inputs
         
         cases = {int(RangerPolicies.Clipper):Clipper_Policy,int(RangerPolicies.Ranger):Ranger_Policy}
-        index = tf.constant(int(self.policy))
+        index = tf.convert_to_tensor(self.policy)
         
         return tf.switch_case(index,cases,default = Default_Policy)
     
-    
+    def print_w(self):
+        tf.print(self.w)
+
+    def reset_w(self):
+        print(f"RESET {self.name} Ranges")
+        self.reset_weights(self.shape)
+
     def call(self, inputs):
         switch_cases = {
             int(RangerModes.Training)   :lambda: inputs,
@@ -150,7 +165,7 @@ class Ranger(keras.layers.Layer):
             int(RangerModes.Disabled)   :lambda: inputs
         }
 
-        index = tf.constant(int(self.mode))
+        index = tf.convert_to_tensor(self.mode)
         return tf.switch_case(index,switch_cases)
 
                                          
