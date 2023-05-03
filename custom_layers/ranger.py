@@ -16,13 +16,13 @@ class RangerModes(IntEnum):
 #these policy names are taken from the content of "Towards a Safety Case for Hardware Fault Tolerance in Convolutional Neural 
 #Networks Using Activation Range Supervision" paper
 class RangerPolicies(IntEnum):
-    Clipper         = 1,        #clip to 0 outliers
-    Ranger          = 2,        #saturate to range bounds outliers
+    Clipper         = 0,        #clip to 0 outliers
+    Ranger          = 1,        #saturate to range bounds outliers
 
 #different granularities refer to different 
 class RangerGranularity(IntEnum):
-    Layer           = 1,
-    Value           = 2,
+    Layer           = 0,
+    Value           = 1,
 
 '''
 
@@ -100,8 +100,8 @@ class Ranger(keras.layers.Layer):
             range_max = tf.constant(tf.dtypes.float32.min)
             range_min = tf.constant(tf.dtypes.float32.max)
         else:
-            range_max = tf.fill(input_shape[1:],tf.dtypes.float32.min)
-            range_min = tf.fill(input_shape[1:],tf.dtypes.float32.max)
+            range_max = tf.fill(input_shape,tf.dtypes.float32.min)
+            range_min = tf.fill(input_shape,tf.dtypes.float32.max)
 
         self.w = tf.Variable(initial_value = (range_min, range_max), trainable = False)
         self.record = False         #state if the range can be evaluated -> TRUE in the middle between training and final inference
@@ -125,7 +125,7 @@ class Ranger(keras.layers.Layer):
         range_max = tf.where(tf.greater_equal(inputs_max,range_max),inputs_max,range_max)
 
         #tf.print("MINMAX: ",inputs_min,inputs_max)
-        #tf.print("RANGE :", range_min,range_max, output_stream=sys.stdout)
+        #tf.print("RANGE :\n", range_min,range_max, output_stream=sys.stdout)
 
         tmp_w = []
         tmp_w.append(range_min)
@@ -148,16 +148,40 @@ class Ranger(keras.layers.Layer):
         lower_threshold = tf.less_equal(range_min,inputs)
         
         outputs = inputs
+        '''
         if self.policy == RangerPolicies.Clipper:
             in_range    = tf.logical_and(lower_threshold, upper_threshold)
             outputs     = tf.where(in_range,inputs,0)
             return outputs
+        
         elif self.policy == RangerPolicies.Ranger:
             output = tf.where(lower_threshold,inputs,range_min)
             output = tf.where(upper_threshold,output,range_max)
 
         return output
+        '''
+
+        def Clipper_Policy():
+            tf.print("Clipper")
+            in_range    = tf.logical_and(lower_threshold, upper_threshold)
+            outputs     = tf.where(in_range,inputs,0)
+            return outputs
+        
+        def Ranger_Policy():
+            tf.print("Ranger")
+            outputs = tf.where(lower_threshold,inputs ,range_min)
+            outputs = tf.where(upper_threshold,outputs,range_max)
+            return outputs
+        
+        def Default_Policy():
+            return inputs
+        
+        cases = {int(RangerPolicies.Clipper):Clipper_Policy,int(RangerPolicies.Ranger):Ranger_Policy}
+        index = tf.constant(int(self.policy))
+        
+        return tf.switch_case(index,cases,default = Default_Policy)
     
+
     '''
     Create a TF graph to switch between inference and range threshold
     '''

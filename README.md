@@ -16,6 +16,16 @@ This is a Tensorflow Implementation of the ranger layer concept described in var
 - [ ] Move DataLoading functions and Training functions inside the models itself.
 - [ ] Fix Vgg16 Example (Some problem adding classes to Tensorflow Functional Models (????))
 
+# Experiments: 
+- Per ogni sample del validatio
+- 300 injection per ogni sample
+- 4 Configurazioni
+0. Classes No Ranger
+1. Clipper-Value
+2. Clipper-Layer
+3. Threshold-Value
+4. Threshold-Layer
+   
 # Principle IDEA:
 The scope of this layer is to imporve reliability/robustness of CNN layers against Fault Tollerance of GPU.
 To do so, it introduce a domain range for each layer (here is the name Ranger) and for each inference it will handle in adeguate way the outsider values.
