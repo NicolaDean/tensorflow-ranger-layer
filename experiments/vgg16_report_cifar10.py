@@ -21,7 +21,7 @@ from models import LeNet
 from models import VGG16
 
 VALIDATION_SIZE = 1
-MODEL_NAME = "vgg_cifar10"
+MODEL_NAME = "VGG16_cifar10"
 
 
 def load_data():
@@ -49,9 +49,9 @@ def build_model(load_model_from_memory=False):
     else:
         print(f"NO MODEL FAULD AT {path_weights} => Loading Classic LeNet")
         model = VGG16(x_train[0].shape)
-
+        
         model.compile(optimizer='adam',
-                loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False),
+                loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
                 metrics=['accuracy'])
         history = model.fit(x_train, y_train, batch_size=64, epochs=10, validation_data=(x_val, y_val))
         model.save(WEIGHT_FILE_PATH + MODEL_NAME)
@@ -74,9 +74,9 @@ def build_model(load_model_from_memory=False):
 #Load Data from dataset
 x_train, y_train, x_val, y_val = load_data()
 
-LOAD_MODEL = False
+LOAD_MODEL = True
 model = build_model(LOAD_MODEL)
-exit()
+
 #--------------------------------------------------------------------------------------------------
 #--------------------------RANGER SETUP------------------------------------------------------------
 #--------------------------------------------------------------------------------------------------
@@ -90,8 +90,10 @@ RANGER.convert_model()
 
 #Extract the new Model containing Ranger
 ranger_model = RANGER.get_model()
+ranger_model.build(np.expand_dims(x_train[0], 0).shape)
 ranger_model.summary()
 
+exit()
 #TUNE THE LAYERS RANGE DOMAIN
 RANGE_TUNE_EPOCH_SIZE = 500
 RANGER.tune_model_range(x_train[-RANGE_TUNE_EPOCH_SIZE:, :, :, :])
