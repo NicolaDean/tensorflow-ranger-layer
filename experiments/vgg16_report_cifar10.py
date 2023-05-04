@@ -90,12 +90,10 @@ RANGER.convert_model()
 
 #Extract the new Model containing Ranger
 ranger_model = RANGER.get_model()
-ranger_model.build(np.expand_dims(x_train[0], 0).shape)
+ranger_model.predict(x_val)
 ranger_model.summary()
 
-tf.keras.utils.plot_model(ranger_model,show_shapes=True, show_layer_names=True)
 
-exit()
 #TUNE THE LAYERS RANGE DOMAIN
 RANGE_TUNE_EPOCH_SIZE = 500
 RANGER.tune_model_range(x_train[-RANGE_TUNE_EPOCH_SIZE:, :, :, :])
@@ -115,13 +113,12 @@ CLASSES = CLASSES_HELPER(ranger_model)         #PROBLEM HERE (??? TODO FIX ???) 
 #Add Fault Injection Layer after each Convolutions or Maxpool
 CLASSES.convert_model(num_requested_injection_sites)
 classes_model = CLASSES.get_model()
-classes_model.build(np.expand_dims(x_train[0], 0).shape)
 classes_model.summary()
 
 CLASSES.disable_all() #Disable all fault injection points
 
 RANGER.set_model(classes_model) #IMPORTANT (otherwise Ranger.set_ranger_mode would not work!)
-
+exit()
 #--------------------------------------------------------------------------------------------------
 #--------------------------FAULT CAMPAIGN + REPORT GENERATION--------------------------------------
 #--------------------------------------------------------------------------------------------------

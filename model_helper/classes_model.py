@@ -127,9 +127,8 @@ class CLASSES_HELPER():
     '''
     Take in input a Model (or a generic Functional Layer) and give in output a Sequential layer with the added ErrorSimulator (Only for Classes compatible layers)
     '''
-    def convert_block(self,layers,num_of_injection_sites) -> functional.Functional:
-        new_layer = keras.Sequential()
-        
+    def convert_block(self,layers,num_of_injection_sites,new_layer=keras.Sequential()) -> functional.Functional:
+
         for l in layers:
             CLASSES_MODEL_TYPE = CLASSES_HELPER.check_classes_layer_compatibility(l)
 
@@ -154,8 +153,8 @@ class CLASSES_HELPER():
 
             elif isinstance(l,functional.Functional):
                 block_layers = [layer for layer in l.layers]
-                new_block = self.convert_block(block_layers, num_of_injection_sites)
-                new_layer.add(new_block)
+                new_block = self.convert_block(block_layers,num_of_injection_sites,new_layer)
+                #new_layer.add(new_block)
             else:
                 new_layer.add(l)
 

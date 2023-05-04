@@ -47,8 +47,7 @@ class RANGER_HELPER():
     '''
     Recursively Explore Layer of model subblock in search of Conv and Maxpool to add Ranger after them
     '''
-    def convert_block(layers) -> functional.Functional:
-        new_layer = keras.Sequential()
+    def convert_block(layers,new_layer=keras.Sequential()) -> functional.Functional:
 
         for l in layers:
             if isinstance(l,keras.layers.Conv2D) or isinstance(l,keras.layers.MaxPool2D): #TODO PUT A FOR CYCLE ON "put_after"
@@ -57,8 +56,11 @@ class RANGER_HELPER():
                 new_layer.add(Ranger("ranger_" + l.name))
             elif isinstance(l,functional.Functional):
                 block_layers = [layer for layer in l.layers]
-                new_block = RANGER_HELPER.convert_block(block_layers)
-                new_layer.add(new_block)
+                new_block = RANGER_HELPER.convert_block(block_layers,new_layer)
+                '''
+                for x in new_block.layers:
+                    new_layer.add(x)
+                '''
             else:
                 new_layer.add(l)
         return new_layer
@@ -70,13 +72,13 @@ class RANGER_HELPER():
     def convert_model_from_src(model: tf.keras.Model):
         #TODO NOT IMPLEMENTED YET
         layers = [layer for layer in model.layers]
-
+        new_model = keras.Sequential()
         #IN and OUT of the Network
         #outputs = layers[len(layers)-1]
         #layers.pop()    #Remove output
 
         #Recursively Search every subblock to add Renger after Conv and Maxpool
-        new_model = RANGER_HELPER.convert_block(layers)
+        new_model = RANGER_HELPER.convert_block(layers,new_model)
         #new_model = keras.Model(inputs=(inputs), outputs=outputs)
 
         return new_model
