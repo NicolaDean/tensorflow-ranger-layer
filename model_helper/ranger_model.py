@@ -51,18 +51,16 @@ class RANGER_HELPER():
         new_layer = keras.Sequential()
 
         for l in layers:
-            if isinstance(l,functional.Functional):
-                block_layers = [layer for layer in l.layers]
-                new_block = RANGER_HELPER.convert_block(block_layers)
-                new_layer.add(new_block)
-                continue
             if isinstance(l,keras.layers.Conv2D) or isinstance(l,keras.layers.MaxPool2D): #TODO PUT A FOR CYCLE ON "put_after"
                 print(f"Added Ranger after layer: {l.name}")
                 new_layer.add(l)
                 new_layer.add(Ranger("ranger_" + l.name))
+            elif isinstance(l,functional.Functional):
+                block_layers = [layer for layer in l.layers]
+                new_block = RANGER_HELPER.convert_block(block_layers)
+                new_layer.add(new_block)
             else:
                 new_layer.add(l)
-        new_layer.summary()
         return new_layer
         
     '''

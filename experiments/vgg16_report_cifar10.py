@@ -20,7 +20,7 @@ from model_helper.classes_model import *
 from models import LeNet
 from models import VGG16
 
-VALIDATION_SIZE = 1
+VALIDATION_SIZE = 10
 MODEL_NAME = "VGG16_cifar10"
 
 
@@ -93,6 +93,8 @@ ranger_model = RANGER.get_model()
 ranger_model.build(np.expand_dims(x_train[0], 0).shape)
 ranger_model.summary()
 
+tf.keras.utils.plot_model(ranger_model,show_shapes=True, show_layer_names=True)
+
 exit()
 #TUNE THE LAYERS RANGE DOMAIN
 RANGE_TUNE_EPOCH_SIZE = 500
@@ -137,7 +139,7 @@ ranger  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Rang
 #TODO ADD Clipping_Layer , Threshold_Value, Threshold_layer
 
 report = pd.concat([vanilla,ranger])
-report.to_csv("vgg16_ranger.csv")
+report.to_csv("vgg16_ranger_cifar.csv")
 
 print(report)
 

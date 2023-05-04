@@ -63,7 +63,7 @@ class Ranger(keras.layers.Layer):
             in_shape = input_shape
         
         #self.input_shape = input_shape
-        self.print_layer_config()
+        #self.print_layer_config()
 
         def Layer_granularity():
             range_max = tf.constant(tf.dtypes.float32.min)
@@ -78,7 +78,7 @@ class Ranger(keras.layers.Layer):
         is_layer_mode   = self.is_granularity(RangerGranularity.Layer)
         ranges_w        = tf.cond(is_layer_mode,Layer_granularity,Value_granularity)
         self.w          = tf.Variable(initial_value = ranges_w, trainable = False)
-        tf.print(f"RANGE W has shape: {self.w.shape}")
+        #tf.print(f"RANGE W has shape: {self.w.shape}")
 
     def build(self, input_shape):
         self.shape = input_shape

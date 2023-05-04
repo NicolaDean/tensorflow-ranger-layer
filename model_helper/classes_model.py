@@ -75,6 +75,9 @@ class CLASSES_HELPER():
     def get_model(self):
         return self.model
     
+    '''
+    Deprecated Do not work recursivly (TODO FIX)
+    '''
     def set_mode(self, layer_name, mode: ErrorSimulatorMode):
         layer = self.model.get_layer("classes_" + layer_name)
 
@@ -195,12 +198,11 @@ class CLASSES_HELPER():
 
     def get_layer(model,layer_name):
         layers      = [layer for layer in model.layers]
-
         for layer in layers:
             if isinstance (layer, keras.Model):
                 # Check if there is one sub_model
                 sub_model = layer
-                return CLASSES_HELPER.get_layer(sub_model,layer)
+                return CLASSES_HELPER.get_layer(sub_model,layer_name)
             elif layer.name == layer_name:
                 return layer
 
@@ -210,6 +212,7 @@ class CLASSES_HELPER():
     '''
     def disable_all(self):
         for l in self.injection_points:
+            #print(f"Injection point {l}")
             layer = CLASSES_HELPER.get_layer(self.model,l)
             layer.set_mode(ErrorSimulatorMode.disabled)
     
