@@ -70,7 +70,6 @@ class Ranger(keras.layers.Layer):
             range_min = tf.constant(tf.dtypes.float32.max)
             return (range_min,range_max)
            
-        
         def Value_granularity():
             range_max = tf.fill(in_shape,tf.dtypes.float32.min)
             range_min = tf.fill(in_shape,tf.dtypes.float32.max)
