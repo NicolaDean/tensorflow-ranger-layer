@@ -193,12 +193,24 @@ class CLASSES_HELPER():
     def get_injection_points(self):
         return self.injection_points
 
+    def get_layer(model,layer_name):
+        layers      = [layer for layer in model.layers]
+
+        for layer in layers:
+            if isinstance (layer, keras.Model):
+                # Check if there is one sub_model
+                sub_model = layer
+                return CLASSES_HELPER.get_layer(sub_model,layer)
+            elif layer.name == layer_name:
+                return layer
+
+        
     '''
     Disable All FaultInjection Layers
     '''
     def disable_all(self):
         for l in self.injection_points:
-            layer = self.model.get_layer(l)
+            layer = CLASSES_HELPER.get_layer(self.model,l)
             layer.set_mode(ErrorSimulatorMode.disabled)
     
     '''
@@ -209,7 +221,8 @@ class CLASSES_HELPER():
         #TODO Check that this is an ErrorSimulator Layer
 
         self.disable_all()                          #Disable all InjectionPoints
-        layer = self.model.get_layer(layer_name)    #Get the selected Injection point
+        #layer = self.model.get_layer(layer_name)    #Get the selected Injection point
+        layer = CLASSES_HELPER.get_layer(self.model,layer_name)
         layer.set_mode(ErrorSimulatorMode.enabled)  #Enable the Selected Injection point
         print("--------------------------------------------------")
         print("--------------------------------------------------")

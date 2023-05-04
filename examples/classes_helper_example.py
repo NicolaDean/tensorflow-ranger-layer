@@ -35,7 +35,7 @@ def load_data():
 
 def build_model(load_model_from_memory=False):
     #Build the model
-    path_weights = os.path.join(WEIGHT_FILE_PATH,'Lenet2')
+    path_weights = os.path.join(WEIGHT_FILE_PATH,'Lenet3')
     print(f"Load weights from => {path_weights}")
     if path_weights is not None and load_model_from_memory:
         model = keras.models.load_model(path_weights)
@@ -62,7 +62,7 @@ x_train, y_train, x_val, y_val = load_data()
 LOAD_MODEL = True
 model = build_model(LOAD_MODEL)
 
-NUM_INJECTIONS = 100
+NUM_INJECTIONS = 128
 NUM = 42
 
 num_requested_injection_sites = NUM_INJECTIONS * 5
