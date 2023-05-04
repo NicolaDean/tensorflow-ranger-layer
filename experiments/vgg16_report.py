@@ -20,7 +20,7 @@ from model_helper.classes_model import *
 from models import LeNet
 from models import VGG16
 
-VALIDATION_SIZE = 1
+VALIDATION_SIZE = 100
 MODEL_NAME = "vgg_mnist"
 
 
@@ -95,16 +95,14 @@ ranger_model = RANGER.get_model()
 ranger_model.summary()
 
 #TUNE THE LAYERS RANGE DOMAIN
-RANGE_TUNE_EPOCH_SIZE = 500
-RANGER.tune_model_range(x_train[-RANGE_TUNE_EPOCH_SIZE:, :, :, :])
+RANGER.tune_model_range(x_train)
 
 #--------------------------------------------------------------------------------------------------
 #--------------------------CLASSES SETUP-----------------------------------------------------------
 #--------------------------------------------------------------------------------------------------
 
 
-NUM_INJECTIONS = 100
-NUM = 42
+NUM_INJECTIONS = 128
 
 num_requested_injection_sites = NUM_INJECTIONS * 5
 #Load Model into Ranger Helper
@@ -131,12 +129,24 @@ print("---------MODELS COMPARISON----------------")
 #CLASSES.get_layer_injection_report("classes_conv2d_1",x_val,y_val)
 RANGER.set_ranger_mode(RangerModes.Disabled)
 vanilla = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "FaultInjection",concat_previous=True)
-RANGER.set_ranger_mode(RangerModes.Inference)
-ranger  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Clipping_Value",concat_previous=True)
+
+RANGER.set_ranger_mode(RangerModes.Inference,RangerPolicies.Clipper,RangerGranularity.Layer)
+clipping_layer  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Clipping_Layer",concat_previous=True)
+RANGER.set_ranger_mode(RangerModes.Inference,RangerPolicies.Ranger,RangerGranularity.Layer)
+ranger_layer  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Ranger_Layer",concat_previous=True)
+
+RANGER.set_ranger_mode(granularity = RangerGranularity.Value)
+RANGER.tune_model_range(x_train)
+
+RANGER.set_ranger_mode(RangerModes.Inference,RangerPolicies.Clipper,RangerGranularity.Value)
+clipping_value  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Clipping_Value",concat_previous=True)
+RANGER.set_ranger_mode(RangerModes.Inference,RangerPolicies.Ranger,RangerGranularity.Value)
+ranger_value  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Ranger_Value",concat_previous=True)
+
 
 #TODO ADD Clipping_Layer , Threshold_Value, Threshold_layer
 
-report = pd.concat([vanilla,ranger])
+report = pd.concat([vanilla,clipping_layer, ranger_layer, clipping_value, ranger_value])
 report.to_csv("vgg16_ranger_mnist.csv")
 
 print(report)
