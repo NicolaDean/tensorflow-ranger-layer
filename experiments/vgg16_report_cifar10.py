@@ -90,13 +90,13 @@ RANGER.convert_model()
 
 #Extract the new Model containing Ranger
 ranger_model = RANGER.get_model()
-ranger_model.predict(x_val)
+x = ranger_model.predict(x_val)
 ranger_model.summary()
 
 
 #TUNE THE LAYERS RANGE DOMAIN
 RANGE_TUNE_EPOCH_SIZE = 500
-RANGER.tune_model_range(x_train[-RANGE_TUNE_EPOCH_SIZE:, :, :, :])
+RANGER.tune_model_range(x_train)
 
 #--------------------------------------------------------------------------------------------------
 #--------------------------CLASSES SETUP-----------------------------------------------------------
@@ -113,12 +113,13 @@ CLASSES = CLASSES_HELPER(ranger_model)         #PROBLEM HERE (??? TODO FIX ???) 
 #Add Fault Injection Layer after each Convolutions or Maxpool
 CLASSES.convert_model(num_requested_injection_sites)
 classes_model = CLASSES.get_model()
+classes_model.predict(x_val)
 classes_model.summary()
 
 CLASSES.disable_all() #Disable all fault injection points
 
 RANGER.set_model(classes_model) #IMPORTANT (otherwise Ranger.set_ranger_mode would not work!)
-exit()
+
 #--------------------------------------------------------------------------------------------------
 #--------------------------FAULT CAMPAIGN + REPORT GENERATION--------------------------------------
 #--------------------------------------------------------------------------------------------------
@@ -128,7 +129,7 @@ print("---------MODELS COMPARISON----------------")
 
 #TODO => USE THE TEST SET FOR NOT BIASED TESTING
 #CLASSES.get_layer_injection_report("classes_conv2d_1",x_val,y_val)
-RANGER.set_ranger_mode(RangerModes.Disabled)
+RANGER.set_ranger_mode(RangerModes.Inference)
 vanilla = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "FaultInjection",concat_previous=True)
 RANGER.set_ranger_mode(RangerModes.Inference)
 ranger  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Clipping_Value",concat_previous=True)

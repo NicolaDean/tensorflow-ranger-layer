@@ -82,7 +82,7 @@ model = build_model(LOAD_MODEL)
 RANGER = RANGER_HELPER(model)
 
 #Add Ranger Layer after each Convolutions or Maxpool
-RANGER.convert_model()
+RANGER.convert_model_v2()
 RANGER.get_model().summary()
 #tf.executing_eagerly()
 #Extract the new Model containing Ranger

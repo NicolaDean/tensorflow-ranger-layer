@@ -8,11 +8,13 @@ from tqdm import tqdm
 from keras import losses
 
 RANGER_MODULE_PATH = "../"
+from .recursive_models import *
 
 # appending a path
 sys.path.append(RANGER_MODULE_PATH) #CHANGE THIS LINE
 
 from custom_layers.ranger import *
+
 
 class RANGER_HELPER():
 
@@ -57,6 +59,8 @@ class RANGER_HELPER():
             elif isinstance(l,functional.Functional):
                 block_layers = [layer for layer in l.layers]
                 new_block = RANGER_HELPER.convert_block(block_layers,new_layer)
+                #new_block = RANGER_HELPER.convert_block(block_layers)
+                #new_layer.add(new_block)
                 '''
                 for x in new_block.layers:
                     new_layer.add(x)
@@ -82,6 +86,19 @@ class RANGER_HELPER():
         #new_model = keras.Model(inputs=(inputs), outputs=outputs)
 
         return new_model
+    
+    def convert_model_v2(self):
+        def match_cond(layer):
+            if isinstance(layer,Conv2D) or isinstance(layer,MaxPool2D):
+                return True
+            else:
+                return False
+        
+        def ranger_layer_factory(layer):
+            return Ranger(name=f"ranger")
+        
+        self.model = insert_layer_nonseq(self.model,match_cond, ranger_layer_factory)
+    
     
     '''
     Convert model given in input to RANGER into a Ranger model (Add Ranger after each layer Conv2D or MaxPool)
