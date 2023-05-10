@@ -167,8 +167,6 @@ class CLASSES_HELPER():
     '''
     def convert_block(self,layers,num_of_injection_sites,new_layer=keras.Sequential()) -> functional.Functional:
 
-    def convert_block(self,layers,num_of_injection_sites,new_layer=keras.Sequential()) -> functional.Functional:
-
         for l in layers:
             CLASSES_MODEL_TYPE = CLASSES_HELPER.check_classes_layer_compatibility(l)
 
@@ -186,7 +184,7 @@ class CLASSES_HELPER():
                 self.injection_points.append(injection_layer_name)
                 available_injection_sites, masks, error_ids = create_injection_sites_layer_simulator(num_of_injection_sites,
                                                                             CLASSES_MODEL_TYPE,
-                                                                            str(inverted_shape), str(shape),CLASSES_MODELS_PATH.models, return_id_errors = True)
+                                                                            str(inverted_shape), str(shape),CLASSES_MODELS_PATH.models_warp, return_id_errors = True)
                 error_ids = np.array(error_ids)
                 error_ids = np.squeeze(error_ids)
                 new_layer.add(l)
@@ -325,7 +323,7 @@ class CLASSES_HELPER():
     1) concat_previous  = True will concatenate the previously generated report with the new one to facilitate creation of dataframe for complex experiments
     2) fault_tollerance = True will simply add to the Dataframe a column to indicate the presence of FaultTollerance techniques
     '''
-    def gen_model_injection_report(self,X,Y,experiment_name="Generic",num_of_iteration=100,concat_previous=False) -> pd.DataFrame:
+    def gen_model_injection_report(self,X,Y,experiment_name="Generic",num_of_iteration=100,concat_previous=False,file_name_report="report.csv",file_name_patterns="patterns.csv") -> pd.DataFrame:
 
         #For Each Injection Point
         report = []
@@ -338,6 +336,14 @@ class CLASSES_HELPER():
         report = pd.DataFrame(report)
         error_prof_report = pd.DataFrame(error_prof_report)
         print(report)
+
+        if concat_previous:
+            mode = 'a'
+        else:
+            mode = 'w'
+
+        report.to_csv(file_name_report,mode=mode)
+        error_prof_report.to_csv(file_name_patterns,mode=mode)
         return report, error_prof_report
     
             
