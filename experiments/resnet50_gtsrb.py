@@ -42,7 +42,7 @@ MODEL_NAME = "vgg_mnist"
 x_train,x_val,y_train,y_val = gtsrb.load_train()
 x_test,y_test               = gtsrb.load_test()
 
-model = tf.keras.models.load_model("../saved_models/vgg19_gtsrb")
+model = tf.keras.models.load_model("../saved_models/resnet50_gtsrb")
 model.summary()
 
 x_val = x_val[:10]
@@ -50,5 +50,4 @@ y_val = y_val[:10]
 
 y_val=np.argmax(y_val,axis=-1)
 
-run_ranger_experiment(model,x_train,x_val,y_train,y_val,"vgg19_gtsrb_old_models")
-
+run_ranger_experiment(model,x_train,x_val,y_train,y_val,"resnet_gtsrb_old_models")

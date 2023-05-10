@@ -126,13 +126,12 @@ print("---------MODELS COMPARISON----------------")
 #TODO => USE THE TEST SET FOR NOT BIASED TESTING
 #CLASSES.get_layer_injection_report("classes_conv2d_1",x_val,y_val)
 RANGER.set_ranger_mode(RangerModes.Disabled)
-vanilla = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "FaultInjection",concat_previous=True)
+report = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "FaultInjection",concat_previous=True)
+report.to_csv("resnet_gtsrb_old_model.csv")
 RANGER.set_ranger_mode(RangerModes.Inference)
-ranger  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Clipping_Value",concat_previous=True)
+report  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Clipping_Value",concat_previous=True)
+report.to_csv("resnet_gtsrb_old_model.csv",mode='a',header=False)
 #TODO ADD Clipping_Layer , Threshold_Value, Threshold_layer
-
-report = pd.concat([vanilla,ranger])
-report.to_csv("lenet_report_new_models.csv")
 
 print(report)
 

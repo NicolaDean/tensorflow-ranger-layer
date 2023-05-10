@@ -80,7 +80,7 @@ class CLASSES_HELPER():
                 self.injection_points.append(injection_layer_name)
                 available_injection_sites, masks = create_injection_sites_layer_simulator(num_of_injection_sites,
                                                                             CLASSES_MODEL_TYPE,
-                                                                            str(inverted_shape), str(shape),CLASSES_MODELS_PATH.models_warp)
+                                                                            str(inverted_shape), str(shape),CLASSES_MODELS_PATH.models)
                 
                 return ErrorSimulator(available_injection_sites,masks,len(available_injection_sites),name="classes")
             
@@ -142,10 +142,7 @@ class CLASSES_HELPER():
                     #return OperatorType['Conv2D3x3']
                     return OperatorType['Conv2D']
             elif stride == 2:
-                if kernel == 2:
-                    return OperatorType.Conv2D3x3S2
-                else:
-                    return None
+                return OperatorType.Conv2D3x3S2
                 
         #TODO ADD OTHER CLASSES LAYER
         else:
