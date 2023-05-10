@@ -85,7 +85,8 @@ class CLASSES_HELPER():
                 available_injection_sites, masks, error_ids = create_injection_sites_layer_simulator(num_of_injection_sites,
                                                                             CLASSES_MODEL_TYPE,
                                                                             str(inverted_shape), str(shape),CLASSES_MODELS_PATH.models_warp, return_id_errors = True)
-                
+                error_ids = np.array(error_ids)
+                error_ids = np.squeeze(error_ids)
                 return ErrorSimulator(available_injection_sites,masks,len(available_injection_sites),error_ids,name="classes")
             
     def convert_model_v2(self,num_of_injection_sites):
