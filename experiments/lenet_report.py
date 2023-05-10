@@ -129,11 +129,10 @@ RANGER.set_ranger_mode(RangerModes.Disabled)
 vanilla = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "FaultInjection",concat_previous=True)
 RANGER.set_ranger_mode(RangerModes.Inference)
 ranger  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Clipping_Value",concat_previous=True)
-
 #TODO ADD Clipping_Layer , Threshold_Value, Threshold_layer
 
 report = pd.concat([vanilla,ranger])
-report.to_csv("lenet_ranger.csv")
+report.to_csv("lenet_report_new_models.csv")
 
 print(report)
 

@@ -111,7 +111,7 @@ CLASSES = CLASSES_HELPER(ranger_model)         #PROBLEM HERE (??? TODO FIX ???) 
 #Add Fault Injection Layer after each Convolutions or Maxpool
 CLASSES.convert_model(num_requested_injection_sites)
 classes_model = CLASSES.get_model()
-classes_model.build(np.expand_dims(x_train[0], 0).shape)
+classes_model.predict(x_val)
 classes_model.summary()
 
 CLASSES.disable_all() #Disable all fault injection points

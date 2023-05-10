@@ -22,7 +22,7 @@ CLASSES_MODULE_PATH = "/../"
 # directory reach
 directory = str(pathlib.Path(__file__).parent.parent.absolute())
 sys.path.append(directory + CLASSES_MODULE_PATH)
-
+from .recursive_models import *
 from classes import *
 import classes
 
@@ -44,6 +44,7 @@ def gen_batch(x,y,batch_size):
 
 def count_misclassification(predictions,labels, error_ids):
     labels      = tf.argmax(labels, 1)
+    predictions = tf.reshape(predictions,labels.shape)
 
     labels      = tf.cast(labels        ,tf.int32)
     predictions = tf.cast(predictions   ,tf.int32)
@@ -66,6 +67,40 @@ class CLASSES_HELPER():
     def set_model(self,model):
         self.model = model
     
+    def elaborate_layer(self,l,num_of_injection_sites):
+            CLASSES_MODEL_TYPE = CLASSES_HELPER.check_classes_layer_compatibility(l)
+
+            if CLASSES_MODEL_TYPE != None:
+                
+                print(f"Added Fault Layer after layer: {l.name} with Error Model [{CLASSES_MODEL_TYPE}]")
+                
+                shape = l.output_shape
+                inverted_shape = (shape[0],shape[3],shape[1],shape[2])
+
+                print(f"Shapes : ({shape} => {inverted_shape})")
+
+                injection_layer_name = "classes_" + l.name
+
+                self.injection_points.append(injection_layer_name)
+                available_injection_sites, masks = create_injection_sites_layer_simulator(num_of_injection_sites,
+                                                                            CLASSES_MODEL_TYPE,
+                                                                            str(inverted_shape), str(shape),CLASSES_MODELS_PATH.models_warp)
+                
+                return ErrorSimulator(available_injection_sites,masks,len(available_injection_sites),name="classes")
+            
+    def convert_model_v2(self,num_of_injection_sites):
+        
+        def match_cond(layer):
+            if isinstance(layer,Conv2D):
+                return True
+            else:
+                return False
+        
+        def classes_layer_factory(layer):
+            return self.elaborate_layer(layer,num_of_injection_sites)
+        self.vanilla_model = self.model
+        self.num_of_injection = math.floor(num_of_injection_sites / 5)
+        self.model = insert_layer_nonseq(self.model,match_cond, classes_layer_factory)
     '''
     Convert a Model by adding Injection points after each Convolution
     '''
@@ -105,7 +140,8 @@ class CLASSES_HELPER():
                     return OperatorType.Conv2D1x1
                 elif kernel == 3:
                     #return OperatorType.Conv2D
-                    return OperatorType['Conv2D3x3S2']
+                    #return OperatorType['Conv2D3x3S2']
+                    return OperatorType['Conv2D3x3']
                 else:
                     #return OperatorType['Conv2D3x3']
                     return OperatorType['Conv2D']
@@ -124,13 +160,16 @@ class CLASSES_HELPER():
     '''
     def convert_model_from_src(self,model: tf.keras.Model,num_of_injection_sites):
         layers      = [layer for layer in model.layers]
-        new_model   = self.convert_block(layers,num_of_injection_sites)
+        new_model   = keras.Sequential()
+        new_model   = self.convert_block(layers,num_of_injection_sites,new_model)
 
         return new_model
 
     '''
     Take in input a Model (or a generic Functional Layer) and give in output a Sequential layer with the added ErrorSimulator (Only for Classes compatible layers)
     '''
+    def convert_block(self,layers,num_of_injection_sites,new_layer=keras.Sequential()) -> functional.Functional:
+
     def convert_block(self,layers,num_of_injection_sites,new_layer=keras.Sequential()) -> functional.Functional:
 
         for l in layers:
@@ -164,6 +203,8 @@ class CLASSES_HELPER():
                 new_layer.add(l)
 
         return new_layer
+
+    #def convert_block_v2(self,layers,num_of_injection_sites,new_layer=keras.Sequential()) -> functional.Functional:
 
     def get_included_models_path():
         return CLASSES_MODELS_PATH.models
@@ -215,6 +256,7 @@ class CLASSES_HELPER():
     Disable All FaultInjection Layers
     '''
     def disable_all(self):
+        print(self.injection_points)
         for l in self.injection_points:
             #print(f"Injection point {l}")
             layer = CLASSES_HELPER.get_layer(self.model,l)
@@ -244,8 +286,8 @@ class CLASSES_HELPER():
             x,y = dataset
 
             vanilla_res = self.vanilla_model.predict(np.expand_dims(x, 0), verbose = 0) #TODO make it using a "Vanilla-mask" instead of predicting every time
-
-            if np.argmax(vanilla_res) == y:
+            #print(f"[{np.argmax(vanilla_res,axis=-1)}] => {y}")
+            if np.argmax(vanilla_res,axis=-1) == y:
                 BATCH_SIZE = 64
                 x_batch,y_batch = gen_batch(x,y,batch_size=self.num_of_injection)
                 self.model.run_eagerly=True
