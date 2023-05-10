@@ -82,11 +82,11 @@ class CLASSES_HELPER():
                 injection_layer_name = "classes_" + l.name
 
                 self.injection_points.append(injection_layer_name)
-                available_injection_sites, masks = create_injection_sites_layer_simulator(num_of_injection_sites,
+                available_injection_sites, masks, error_ids = create_injection_sites_layer_simulator(num_of_injection_sites,
                                                                             CLASSES_MODEL_TYPE,
-                                                                            str(inverted_shape), str(shape),CLASSES_MODELS_PATH.models)
+                                                                            str(inverted_shape), str(shape),CLASSES_MODELS_PATH.models_warp, return_id_errors = True)
                 
-                return ErrorSimulator(available_injection_sites,masks,len(available_injection_sites),name="classes")
+                return ErrorSimulator(available_injection_sites,masks,len(available_injection_sites),error_ids,name="classes")
             
     def convert_model_v2(self,num_of_injection_sites):
         
