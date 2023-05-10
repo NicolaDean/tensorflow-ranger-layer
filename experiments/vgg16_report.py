@@ -128,28 +128,33 @@ print("---------MODELS COMPARISON----------------")
 #TODO => USE THE TEST SET FOR NOT BIASED TESTING
 #CLASSES.get_layer_injection_report("classes_conv2d_1",x_val,y_val)
 RANGER.set_ranger_mode(RangerModes.Disabled)
-vanilla = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "FaultInjection",concat_previous=True)
+vanilla, vanilla_ids = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "FaultInjection",concat_previous=True)
 
 RANGER.set_ranger_mode(RangerModes.Inference,RangerPolicies.Clipper,RangerGranularity.Layer)
-clipping_layer  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Clipping_Layer",concat_previous=True)
+clipping_layer, clipping_layer_ids  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Clipping_Layer",concat_previous=True)
 RANGER.set_ranger_mode(RangerModes.Inference,RangerPolicies.Ranger,RangerGranularity.Layer)
-ranger_layer  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Ranger_Layer",concat_previous=True)
+ranger_layer, ranger_layer_ids  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Ranger_Layer",concat_previous=True)
 
 RANGER.set_ranger_mode(granularity = RangerGranularity.Value)
 RANGER.tune_model_range(x_train)
 
 RANGER.set_ranger_mode(RangerModes.Inference,RangerPolicies.Clipper,RangerGranularity.Value)
-clipping_value  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Clipping_Value",concat_previous=True)
+clipping_value, clipping_value_ids  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Clipping_Value",concat_previous=True)
 RANGER.set_ranger_mode(RangerModes.Inference,RangerPolicies.Ranger,RangerGranularity.Value)
-ranger_value  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Ranger_Value",concat_previous=True)
+ranger_value, ranger_value_ids  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Ranger_Value",concat_previous=True)
 
 
 #TODO ADD Clipping_Layer , Threshold_Value, Threshold_layer
 
 report = pd.concat([vanilla,clipping_layer, ranger_layer, clipping_value, ranger_value])
 report.to_csv("vgg16_ranger_mnist.csv")
-
 print(report)
+
+
+report = pd.concat([vanilla_ids, clipping_layer_ids, ranger_layer_ids, clipping_value_ids, ranger_value_ids])
+report.to_csv("vgg16_ranger_mnist_mispredictions.csv")
+
+
 
 
 
