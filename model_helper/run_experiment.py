@@ -66,26 +66,22 @@ def run_ranger_experiment(model,x_train,x_val,y_train,y_val,experiment_name):
     #--------------------------------------------------------------------------------------------------
 
     file_name = experiment_name + ".csv"
+    file_pattern = "pattern_"+file_name
     print("---------MODELS COMPARISON----------------")
 
     #TODO => USE THE TEST SET FOR NOT BIASED TESTING
     #CLASSES.get_layer_injection_report("classes_conv2d_1",x_val,y_val)
     RANGER.set_ranger_mode(RangerModes.Disabled)
-    report = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "FaultInjection",concat_previous=True)
-    report.to_csv(file_name,mode='a')
+    report = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "FaultInjection",concat_previous=False,file_name_report=file_name,file_name_patterns=file_pattern)
     RANGER.set_ranger_mode(RangerModes.Inference,RangerPolicies.Clipper,RangerGranularity.Layer)
-    report  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Clipping_Layer",concat_previous=True)
-    report.to_csv(file_name,mode='a')
+    report  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Clipping_Layer",concat_previous=True,file_name_report=file_name,file_name_patterns=file_pattern)
     RANGER.set_ranger_mode(RangerModes.Inference,RangerPolicies.Ranger,RangerGranularity.Layer)
-    report  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Ranger_Layer",concat_previous=True)
-    report.to_csv(file_name,mode='a')
+    report  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Ranger_Layer",concat_previous=True,file_name_report=file_name,file_name_patterns=file_pattern)
 
     RANGER.set_ranger_mode(granularity = RangerGranularity.Value)
     RANGER.tune_model_range(x_train)
 
     RANGER.set_ranger_mode(RangerModes.Inference,RangerPolicies.Clipper,RangerGranularity.Value)
-    report  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Clipping_Value",concat_previous=True)
-    report.to_csv(file_name,mode='a')
+    report  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Clipping_Value",concat_previous=True,file_name_report=file_name,file_name_patterns=file_pattern)
     RANGER.set_ranger_mode(RangerModes.Inference,RangerPolicies.Ranger,RangerGranularity.Value)
-    report  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Ranger_Value",concat_previous=True)
-    report.to_csv(file_name,mode='a')
+    report  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Ranger_Value",concat_previous=True,file_name_report=file_name,file_name_patterns=file_pattern)
