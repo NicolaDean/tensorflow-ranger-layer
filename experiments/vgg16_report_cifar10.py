@@ -113,13 +113,12 @@ CLASSES = CLASSES_HELPER(ranger_model)         #PROBLEM HERE (??? TODO FIX ???) 
 #Add Fault Injection Layer after each Convolutions or Maxpool
 CLASSES.convert_model(num_requested_injection_sites)
 classes_model = CLASSES.get_model()
-classes_model.predict(x_val)
 classes_model.summary()
 
 CLASSES.disable_all() #Disable all fault injection points
 
 RANGER.set_model(classes_model) #IMPORTANT (otherwise Ranger.set_ranger_mode would not work!)
-
+exit()
 #--------------------------------------------------------------------------------------------------
 #--------------------------FAULT CAMPAIGN + REPORT GENERATION--------------------------------------
 #--------------------------------------------------------------------------------------------------

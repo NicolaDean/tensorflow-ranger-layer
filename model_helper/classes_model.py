@@ -14,6 +14,7 @@ from dataclasses import make_dataclass
 
     
 Fault_injection_Report = make_dataclass("Fault_injection_Report", [("layer_name",str),("sample_id", int), ("num_of_injection", int), ("misclassifications", int),("experiment",str)])
+Error_ID_report = make_dataclass("Error_ID_report", [("Mode", str), ("Layer_name", str), ("Sample_id", int), ("Cardinality", int), ("Pattern", int), ("Misprediction", int)])
 
 
 CLASSES_MODULE_PATH = "/../"
@@ -41,7 +42,7 @@ def gen_batch(x,y,batch_size):
 
     return batch,y_batch
 
-def count_misclassification(predictions,labels):
+def count_misclassification(predictions,labels, error_ids):
     labels      = tf.argmax(labels, 1)
     predictions = tf.reshape(predictions,labels.shape)
 
@@ -49,7 +50,10 @@ def count_misclassification(predictions,labels):
     predictions = tf.cast(predictions   ,tf.int32)
 
     result      = tf.reduce_sum(tf.cast(tf.not_equal(labels,predictions), tf.int32)).numpy()
-    return result
+    
+    misclassifications = tf.concat([tf.convert_to_tensor(error_ids, dtype = tf.int32), tf.expand_dims(tf.cast(tf.not_equal(labels, predictions), tf.int32), axis = 1)], axis = 1).numpy()
+
+    return result, misclassifications
 
 '''
 This is an HELPER class to easily work with the CLASSES framwork on existing models (without having to write boilerplate code by hand)
@@ -163,6 +167,8 @@ class CLASSES_HELPER():
     '''
     def convert_block(self,layers,num_of_injection_sites,new_layer=keras.Sequential()) -> functional.Functional:
 
+    def convert_block(self,layers,num_of_injection_sites,new_layer=keras.Sequential()) -> functional.Functional:
+
         for l in layers:
             CLASSES_MODEL_TYPE = CLASSES_HELPER.check_classes_layer_compatibility(l)
 
@@ -178,17 +184,18 @@ class CLASSES_HELPER():
                 injection_layer_name = "classes_" + l.name
 
                 self.injection_points.append(injection_layer_name)
-                available_injection_sites, masks = create_injection_sites_layer_simulator(num_of_injection_sites,
+                available_injection_sites, masks, error_ids = create_injection_sites_layer_simulator(num_of_injection_sites,
                                                                             CLASSES_MODEL_TYPE,
-                                                                            str(inverted_shape), str(shape),CLASSES_MODELS_PATH.models_warp)
-                
+                                                                            str(inverted_shape), str(shape),CLASSES_MODELS_PATH.models, return_id_errors = True)
+                error_ids = np.array(error_ids)
+                error_ids = np.squeeze(error_ids)
                 new_layer.add(l)
-                new_layer.add(ErrorSimulator(available_injection_sites, masks,len(available_injection_sites),name=injection_layer_name))
+                new_layer.add(ErrorSimulator(available_injection_sites, masks,len(available_injection_sites), error_ids,name=injection_layer_name))
 
             elif isinstance(l,functional.Functional):
                 block_layers = [layer for layer in l.layers]
-                new_block = self.convert_block(block_layers,num_of_injection_sites)
-                new_layer.add(new_block)
+                new_block = self.convert_block(block_layers,num_of_injection_sites,new_layer)
+                #new_layer.add(new_block)
             else:
                 new_layer.add(l)
 
@@ -269,6 +276,7 @@ class CLASSES_HELPER():
         print("--------------------------------------------------")
         print("--------------------------------------------------")
         report = []
+        ids_report = []
         vanilla_errors = 0
         #For each Sample in the dataset
         for i,dataset in enumerate(zip(X,Y)):
@@ -279,9 +287,12 @@ class CLASSES_HELPER():
             if np.argmax(vanilla_res,axis=-1) == y:
                 BATCH_SIZE = 64
                 x_batch,y_batch = gen_batch(x,y,batch_size=self.num_of_injection)
+                self.model.run_eagerly=True
                 pred = self.model.predict(x_batch,batch_size=BATCH_SIZE)
-                errors = count_misclassification(y_batch,pred)
-
+                ids = [layer.error_ids[i] for i in np.squeeze(layer.get_history()[1:])]
+                
+                errors, misclassifications = count_misclassification(y_batch,pred, ids)
+                
                 '''
                 #For "Num_of_injection" run we inject a random fault using the error model
                 errors = 0
@@ -292,14 +303,18 @@ class CLASSES_HELPER():
                 '''
                 line_report = Fault_injection_Report(layer_name,i,self.num_of_injection,errors,experiment_name)
                 report += [line_report]
-                
+
+                for injection in misclassifications:
+                    ids_report += [Error_ID_report(experiment_name, layer_name, i, injection[0], injection[1], injection[2])]
                 print(f'[Layer: {layer_name}] => [Sample: {i}] Number of misclassification over {self.num_of_injection} injections: {errors}') 
             else:
                 print(f"Sample: {i} Misclassified by vanilla model")
                 vanilla_errors += 1
+            layer.clear_history()
+
         #report = pd.DataFrame(report)
         #print(report)
-        return report
+        return report, ids_report 
     '''
     Given a Dataset:
     For each injection point inside the model:
@@ -314,13 +329,16 @@ class CLASSES_HELPER():
 
         #For Each Injection Point
         report = []
+        error_prof_report = []
         for l in self.injection_points:
-            layer_report = self.get_layer_injection_report(l,X,Y,experiment_name,num_of_iteration)
+            layer_report, ids_report = self.get_layer_injection_report(l,X,Y,experiment_name,num_of_iteration)
             report += layer_report
+            error_prof_report += ids_report
 
         report = pd.DataFrame(report)
+        error_prof_report = pd.DataFrame(error_prof_report)
         print(report)
-        return report
+        return report, error_prof_report
     
             
 
