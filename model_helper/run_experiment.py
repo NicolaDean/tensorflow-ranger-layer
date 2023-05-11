@@ -9,7 +9,7 @@ from keras.utils import img_to_array, array_to_img
 from tqdm import tqdm
 
 
-
+REPORT_PATH = "../reports/"
 WEIGHT_FILE_PATH = "../saved_models/"
 LIBRARY_PATH = "/../"
 
@@ -65,8 +65,9 @@ def run_ranger_experiment(model,x_train,x_val,y_train,y_val,experiment_name):
     #--------------------------FAULT CAMPAIGN + REPORT GENERATION--------------------------------------
     #--------------------------------------------------------------------------------------------------
 
-    file_name = experiment_name + ".csv"
-    file_pattern = "pattern_"+file_name
+    file_name    = REPORT_PATH + experiment_name + ".csv"
+    file_pattern = REPORT_PATH + "pattern_"+experiment_name + file_name
+    
     print("---------MODELS COMPARISON----------------")
 
     #TODO => USE THE TEST SET FOR NOT BIASED TESTING
@@ -78,6 +79,7 @@ def run_ranger_experiment(model,x_train,x_val,y_train,y_val,experiment_name):
     RANGER.set_ranger_mode(RangerModes.Inference,RangerPolicies.Ranger,RangerGranularity.Layer)
     report  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Ranger_Layer",concat_previous=True,file_name_report=file_name,file_name_patterns=file_pattern)
 
+    '''
     RANGER.set_ranger_mode(granularity = RangerGranularity.Value)
     RANGER.tune_model_range(x_train)
 
@@ -85,3 +87,4 @@ def run_ranger_experiment(model,x_train,x_val,y_train,y_val,experiment_name):
     report  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Clipping_Value",concat_previous=True,file_name_report=file_name,file_name_patterns=file_pattern)
     RANGER.set_ranger_mode(RangerModes.Inference,RangerPolicies.Ranger,RangerGranularity.Value)
     report  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Ranger_Value",concat_previous=True,file_name_report=file_name,file_name_patterns=file_pattern)
+    '''

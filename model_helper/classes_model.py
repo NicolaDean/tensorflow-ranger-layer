@@ -145,9 +145,9 @@ class CLASSES_HELPER():
                     return OperatorType['Conv2D3x3']
                 else:
                     #return OperatorType['Conv2D3x3']
-                    return OperatorType['Conv2D']
+                    return OperatorType['Conv2D3x3']
             elif stride == 2:
-                return OperatorType.Conv2D3x3S2
+                return OperatorType['Conv2D3x3']
                 
         #TODO ADD OTHER CLASSES LAYER
         else:

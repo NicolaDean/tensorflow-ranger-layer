@@ -130,6 +130,15 @@ report = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Fault
 RANGER.set_ranger_mode(RangerModes.Inference)
 report  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Clipping_Value",concat_previous=True)
 
+
+RANGER.set_ranger_mode(granularity = RangerGranularity.Value)
+RANGER.tune_model_range(x_train)
+
+RANGER.set_ranger_mode(RangerModes.Inference,RangerPolicies.Clipper,RangerGranularity.Value)
+clipping_value, clipping_value_ids  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Clipping_Value",concat_previous=True)
+RANGER.set_ranger_mode(RangerModes.Inference,RangerPolicies.Ranger,RangerGranularity.Value)
+ranger_value, ranger_value_ids  = CLASSES.gen_model_injection_report(x_val,y_val,experiment_name = "Ranger_Ranger_Value",concat_previous=True)
+
 print(report)
 
 
