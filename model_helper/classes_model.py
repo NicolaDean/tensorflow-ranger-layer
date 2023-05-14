@@ -88,7 +88,18 @@ class CLASSES_HELPER():
                 error_ids = np.array(error_ids)
                 error_ids = np.squeeze(error_ids)
                 return ErrorSimulator(available_injection_sites,masks,len(available_injection_sites),error_ids,name="classes")
-            
+
+    def add_classes_by_name(self,layer_name,num_of_injection_sites):
+        def match_cond(layer):
+            return layer.name == layer_name
+        
+        def classes_layer_factory(layer):
+            return self.elaborate_layer(layer,num_of_injection_sites)
+        
+        self.vanilla_model = self.model
+        self.num_of_injection = math.floor(num_of_injection_sites / 5)
+        self.model = insert_layer_nonseq(self.model,match_cond, classes_layer_factory)
+        
     def convert_model_v2(self,num_of_injection_sites):
         
         def match_cond(layer):

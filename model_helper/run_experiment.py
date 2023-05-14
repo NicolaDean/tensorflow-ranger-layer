@@ -21,6 +21,46 @@ print("AAA:" + directory + LIBRARY_PATH)
 from model_helper.ranger_model import *
 from model_helper.classes_model import *
 
+def add_ranger_classes_to_model(model,layer_name,NUM_INJECTIONS=128):
+    #--------------------------------------------------------------------------------------------------
+    #--------------------------RANGER SETUP------------------------------------------------------------
+    #--------------------------------------------------------------------------------------------------
+
+    #Load Model into Ranger Helper
+    RANGER = RANGER_HELPER(model)
+
+    #Add Ranger Layer after each Convolutions or Maxpool
+    RANGER.convert_model_v2()
+    #tf.executing_eagerly()
+
+    #Extract the new Model containing Ranger
+    ranger_model = RANGER.get_model()
+    ranger_model.summary()
+    
+    #TUNE THE LAYERS RANGE DOMAIN
+    #RANGER.tune_model_range(x_train)
+    
+    #--------------------------------------------------------------------------------------------------
+    #--------------------------CLASSES SETUP-----------------------------------------------------------
+    #--------------------------------------------------------------------------------------------------
+
+
+    num_requested_injection_sites = NUM_INJECTIONS * 5
+    #Load Model into Ranger Helper
+    CLASSES = CLASSES_HELPER(ranger_model)         #PROBLEM HERE (??? TODO FIX ???) => With model work, with ranger_model not.. why??
+
+    #Add Fault Injection Layer after each Convolutions or Maxpool
+    CLASSES.add_classes_by_name(layer_name,num_requested_injection_sites)
+    classes_model = CLASSES.get_model()
+    #classes_model.predict(x_val)
+    classes_model.summary()
+    keras.utils.plot_model(classes_model,to_file="classes.png" ,show_shapes=True)
+    CLASSES.disable_all() #Disable all fault injection points
+
+    RANGER.set_model(classes_model) #IMPORTANT (otherwise Ranger.set_ranger_mode would not work!)
+
+    return RANGER,CLASSES
+
 def run_ranger_experiment(model,x_train,x_val,y_train,y_val,experiment_name,NUM_INJECTIONS=128):
     #--------------------------------------------------------------------------------------------------
     #--------------------------RANGER SETUP------------------------------------------------------------
@@ -36,10 +76,10 @@ def run_ranger_experiment(model,x_train,x_val,y_train,y_val,experiment_name,NUM_
     #Extract the new Model containing Ranger
     ranger_model = RANGER.get_model()
     ranger_model.summary()
-
+    
     #TUNE THE LAYERS RANGE DOMAIN
     RANGER.tune_model_range(x_train)
-
+    
     #--------------------------------------------------------------------------------------------------
     #--------------------------CLASSES SETUP-----------------------------------------------------------
     #--------------------------------------------------------------------------------------------------
@@ -54,7 +94,6 @@ def run_ranger_experiment(model,x_train,x_val,y_train,y_val,experiment_name,NUM_
     classes_model = CLASSES.get_model()
     #classes_model.predict(x_val)
     classes_model.summary()
-
     CLASSES.disable_all() #Disable all fault injection points
 
     RANGER.set_model(classes_model) #IMPORTANT (otherwise Ranger.set_ranger_mode would not work!)

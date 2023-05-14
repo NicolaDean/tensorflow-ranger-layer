@@ -15,7 +15,7 @@ This is a Tensorflow Implementation of the ranger layer concept described in var
 # TODO LIST of Examples:
 - [ ] Move DataLoading functions and Training functions inside the models itself.
 - [ ] Fix Vgg16 Example (Some problem adding classes to Tensorflow Functional Models (????))
-
+- [ ] Add Classes also after Activation Relu
 # Experiments: 
 - Per ogni sample del validatio
 - 300 injection per ogni sample
