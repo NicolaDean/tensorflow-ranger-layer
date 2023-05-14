@@ -45,10 +45,10 @@ x_test,y_test               = gtsrb.load_test()
 model = tf.keras.models.load_model("../saved_models/vgg19_gtsrb")
 model.summary()
 
-x_val = x_val[:10]
-y_val = y_val[:10]
+x_val = x_test[:10]
+y_val = y_test[:10]
 
 y_val=np.argmax(y_val,axis=-1)
 
-run_ranger_experiment(model,x_train,x_val,y_train,y_val,"vgg19_gtsrb_old_models")
+run_ranger_experiment(model,x_train,x_val,y_train,y_val,"vgg19_gtsrb_old_models",NUM_INJECTIONS=128)
 

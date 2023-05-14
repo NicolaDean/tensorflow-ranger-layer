@@ -21,7 +21,7 @@ print("AAA:" + directory + LIBRARY_PATH)
 from model_helper.ranger_model import *
 from model_helper.classes_model import *
 
-def run_ranger_experiment(model,x_train,x_val,y_train,y_val,experiment_name):
+def run_ranger_experiment(model,x_train,x_val,y_train,y_val,experiment_name,NUM_INJECTIONS=128):
     #--------------------------------------------------------------------------------------------------
     #--------------------------RANGER SETUP------------------------------------------------------------
     #--------------------------------------------------------------------------------------------------
@@ -45,8 +45,6 @@ def run_ranger_experiment(model,x_train,x_val,y_train,y_val,experiment_name):
     #--------------------------------------------------------------------------------------------------
 
 
-    NUM_INJECTIONS = 128
-
     num_requested_injection_sites = NUM_INJECTIONS * 5
     #Load Model into Ranger Helper
     CLASSES = CLASSES_HELPER(ranger_model)         #PROBLEM HERE (??? TODO FIX ???) => With model work, with ranger_model not.. why??
@@ -64,9 +62,9 @@ def run_ranger_experiment(model,x_train,x_val,y_train,y_val,experiment_name):
     #--------------------------------------------------------------------------------------------------
     #--------------------------FAULT CAMPAIGN + REPORT GENERATION--------------------------------------
     #--------------------------------------------------------------------------------------------------
-
-    file_name    = REPORT_PATH + experiment_name + ".csv"
-    file_pattern = REPORT_PATH + "pattern_"+experiment_name + file_name
+    base_name    = experiment_name + ".csv"
+    file_name    = REPORT_PATH + base_name
+    file_pattern = REPORT_PATH + "pattern_"+ base_name
     
     print("---------MODELS COMPARISON----------------")
 

@@ -89,7 +89,11 @@ class RANGER_HELPER():
     
     def convert_model_v2(self):
         def match_cond(layer):
-            if isinstance(layer,Conv2D) or isinstance(layer,MaxPool2D):
+            if     isinstance(layer,tf.keras.layers.Conv2D) \
+                or isinstance(layer,tf.keras.layers.Add) \
+                or isinstance(layer,tf.keras.layers.MaxPooling2D) \
+                or isinstance(layer,tf.keras.layers.AveragePooling2D) \
+                or isinstance(layer,tf.keras.layers.BatchNormalization):
                 return True
             else:
                 return False

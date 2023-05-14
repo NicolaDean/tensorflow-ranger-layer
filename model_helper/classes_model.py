@@ -92,16 +92,15 @@ class CLASSES_HELPER():
     def convert_model_v2(self,num_of_injection_sites):
         
         def match_cond(layer):
-            if isinstance(layer,Conv2D):
-                return True
-            else:
-                return False
+            return CLASSES_HELPER.check_classes_layer_compatibility(layer) != None
         
         def classes_layer_factory(layer):
             return self.elaborate_layer(layer,num_of_injection_sites)
+        
         self.vanilla_model = self.model
         self.num_of_injection = math.floor(num_of_injection_sites / 5)
         self.model = insert_layer_nonseq(self.model,match_cond, classes_layer_factory)
+
     '''
     Convert a Model by adding Injection points after each Convolution
     '''
@@ -130,7 +129,16 @@ class CLASSES_HELPER():
     Return the most compatible error model for the input layer
     '''
     def check_classes_layer_compatibility(layer):
-        if isinstance(layer,keras.layers.Conv2D):
+        #TODO => ADD ALL LAYERS
+        if isinstance(layer,keras.layers.Add):
+            return OperatorType['Add']#TODO FIX, ADD THE ADD MODEL TO WARP
+        elif isinstance(layer,keras.layers.BatchNormalization):
+            return OperatorType['FusedBatchNormV3']
+        elif isinstance(layer,keras.layers.MaxPooling2D):
+            return OperatorType['MaxPool2D']
+        elif isinstance(layer,keras.layers.AveragePooling2D):
+            return OperatorType['AvgPool2D']
+        elif isinstance(layer,keras.layers.Conv2D):
             stride = layer.strides[0]
             kernel = layer.kernel_size[0]
             print(f"Stride = ({stride} , Kernel ({kernel}))")
@@ -340,11 +348,15 @@ class CLASSES_HELPER():
 
         if concat_previous:
             mode = 'a'
+            header=False
         else:
             mode = 'w'
+            header=True
 
-        report.to_csv(file_name_report,mode=mode)
-        error_prof_report.to_csv(file_name_patterns,mode=mode)
+        print(f"Saving {file_name_report} with mode {mode}")
+        report.to_csv(file_name_report,mode=mode,header=header)
+        print(f"Saving {file_name_patterns} with mode {mode}")
+        error_prof_report.to_csv(file_name_patterns,mode=mode,header=header)
         return report, error_prof_report
     
             
