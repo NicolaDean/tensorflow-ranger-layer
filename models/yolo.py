@@ -375,7 +375,7 @@ def load_yolo_with_weights():
 	#yolov3.save('model.h5')
 	return yolov3
 
-def yolo_predict(yolov3,frame):
+def yolo_predict(yolov3,frame,plot=True):
 
 	# define the expected input shape for the model
 	input_w, input_h = 320, 320
@@ -392,6 +392,8 @@ def yolo_predict(yolov3,frame):
 	# make prediction
 	yhat = yolov3.predict(image,verbose=0)
 
+	if not plot:
+		return
 	# summarize the shape of the list of arrays
 	#print([a.shape for a in yhat])
 		
@@ -399,10 +401,9 @@ def yolo_predict(yolov3,frame):
 	for i in range(len(yhat)):
 		# decode the output of the network
 		boxes += decode_netout(yhat[i][0], anchors[i], class_threshold, input_h, input_w)
-
-	# correct the sizes of the bounding boxes for the shape of the image
+		# correct the sizes of the bounding boxes for the shape of the image
+	
 	correct_yolo_boxes(boxes, image_h, image_w, input_h, input_w)
-
 	# suppress non-maximal boxes
 	do_nms(boxes, 0.5)
 

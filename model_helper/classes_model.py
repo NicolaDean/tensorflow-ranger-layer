@@ -271,6 +271,7 @@ class CLASSES_HELPER():
     Disable All FaultInjection Layers
     '''
     def disable_all(self):
+        print("Disable All Fault injection point")
         print(self.injection_points)
         for l in self.injection_points:
             #print(f"Injection point {l}")

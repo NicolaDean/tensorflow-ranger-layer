@@ -116,8 +116,10 @@ class RANGER_HELPER():
 
     After it finish the process it set the model in inference mode
     '''
-    def tune_model_range(self,X,Y=None):
-        self.reset_ranger_layers()
+    def tune_model_range(self,X,Y=None,reset=True):
+        if reset:
+            self.reset_ranger_layers()
+            
         print("Tuning the moodel Range Domain")
         self.set_ranger_mode(RangerModes.RangeTuning)
         self.model.predict(X)

@@ -54,7 +54,7 @@ def add_ranger_classes_to_model(model,layer_name,NUM_INJECTIONS=128):
     classes_model = CLASSES.get_model()
     #classes_model.predict(x_val)
     classes_model.summary()
-    keras.utils.plot_model(classes_model,to_file="classes.png" ,show_shapes=True)
+    #keras.utils.plot_model(classes_model,to_file="classes.png" ,show_shapes=True)
     CLASSES.disable_all() #Disable all fault injection points
 
     RANGER.set_model(classes_model) #IMPORTANT (otherwise Ranger.set_ranger_mode would not work!)
