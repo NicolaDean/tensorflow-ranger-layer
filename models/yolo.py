@@ -325,7 +325,7 @@ def draw_boxes(filename, v_boxes, v_labels, v_scores):
 	# show the plot
 	pyplot.show()
 	
-def draw_boxes2(frame, v_boxes, v_labels, v_scores):
+def draw_boxes2(img, v_boxes, v_labels, v_scores):
 	for i in range(len(v_boxes)):
 		color = (36,255,12)
 		box = v_boxes[i]
@@ -333,7 +333,7 @@ def draw_boxes2(frame, v_boxes, v_labels, v_scores):
 		y1, x1, y2, x2 = box.ymin, box.xmin, box.ymax, box.xmax
 
 		# For bounding box
-		img = cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+		img = cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
 		
 		# For the text background
 		# Finds space required by the text so that we can put a background with that amount of width.
@@ -344,7 +344,6 @@ def draw_boxes2(frame, v_boxes, v_labels, v_scores):
 
 		# For printing text
 		img = cv2.putText(img, label, (x1, y1),cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255,255,255), 1)
-		return img
 
 # define the anchors
 anchors = [[116,90, 156,198, 373,326], [30,61, 62,45, 59,119], [10,13, 16,30, 33,23]]
@@ -415,7 +414,7 @@ def yolo_predict(yolov3,frame):
 		print(v_labels[i], v_scores[i])
 	'''
 	# draw what we found
-	return draw_boxes2(frame, v_boxes, v_labels, v_scores)
+	draw_boxes2(frame, v_boxes, v_labels, v_scores)
 #----------------------------------------------------------------
 #----------------------------------------------------------------
 #-------------CODE EXAMPLE---------------------------------------

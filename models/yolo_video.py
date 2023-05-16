@@ -25,10 +25,10 @@ while(cap.isOpened()):
 # Capture frame-by-frame
     ret, frame = cap.read()
     if ret == True:
-        frame = yolo_predict(yolov3,frame)
+        yolo_predict(yolov3,frame)
         font = cv2.FONT_HERSHEY_SIMPLEX
         new_frame_time = time.time()
-        fps = 1/(new_fraqme_time-prev_frame_time)
+        fps = 1/(new_frame_time-prev_frame_time)
         prev_frame_time = new_frame_time
         fps = int(fps)
         fps = str(fps)  
