@@ -1,6 +1,7 @@
 ./classes
 classes
-datasets
+datasets/GTSRB
+datasets/YOLO
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
