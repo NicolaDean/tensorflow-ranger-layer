@@ -74,32 +74,31 @@ def _main():
     yolo_faulty = YOLO(**vars(argss))
     yolo_model = yolo.yolo_model
 
-    #yolo_model.summary()
+    yolo_model.summary()
 
-    layer_names = ['conv2d_21','conv2d_71']
+    layer_names = ['conv2d_3','conv2d_6','conv2d_56','conv2d_71'] #conv2d_21 è dannoso, conv2d_71 non tanto
     #if type(a_list) == list:
     RANGER,CLASSES = add_ranger_classes_to_model(yolo.yolo_model,layer_names,NUM_INJECTIONS=8)
     yolo_ranger = RANGER.get_model()
     yolo_ranger.summary()
-
+    CLASSES.set_model(yolo_ranger)
     CLASSES.disable_all()
 
-    layer = CLASSES_HELPER.get_layer(yolo_ranger,"classes_" + layer_names[0])
-    layer.set_mode(ErrorSimulatorMode.enabled)  #Enable the Selected Injection point
-    
     yolo_faulty = yolo_ranger
    
     #RAGE TUNE THE YOLO MODEL
     print("=============FINE TUNING=============")
-    for _ in range(1):
+    for _ in range(5):
         dataset = next(train_gen)
         data   = dataset[0][0]
 
         from PIL import Image, ImageFont, ImageDraw
         image_data = data
         #image_data = np.expand_dims(data[0], 0)  # Add batch dimension.
-        #RANGER.tune_model_range(image_data, reset=False)
+        RANGER.tune_model_range(image_data, reset=False)
     
+    layer = CLASSES_HELPER.get_layer(yolo_ranger,"classes_" + layer_names[0])
+    layer.set_mode(ErrorSimulatorMode.enabled)  #Enable the Selected Injection point
     #NOW WE TRY INJECT FAULTS ON INPUTS
     dataset = next(train_gen)
     n_inj = 1

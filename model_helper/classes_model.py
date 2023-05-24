@@ -283,7 +283,7 @@ class CLASSES_HELPER():
         print("Disable All Fault injection point")
         print(self.injection_points)
         for l in self.injection_points:
-            #print(f"Injection point {l}")
+            print(f"Injection point {l}")
             layer = CLASSES_HELPER.get_layer(self.model,l)
             layer.set_mode(ErrorSimulatorMode.disabled)
     
