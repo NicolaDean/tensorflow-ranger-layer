@@ -90,9 +90,17 @@ class CLASSES_HELPER():
                 return ErrorSimulator(available_injection_sites,masks,len(available_injection_sites),error_ids,name="classes")
 
     def add_classes_by_name(self,layer_name,num_of_injection_sites):
-        def match_cond(layer):
-            return layer.name == layer_name
-        
+        if type(layer_name) == list:
+            def match_cond(layer):
+                check = False
+                for l in layer_name:
+                    check = check or (layer.name == l)
+                
+                return check
+        else:
+            def match_cond(layer):
+                return layer.name == layer_name
+            
         def classes_layer_factory(layer):
             return self.elaborate_layer(layer,num_of_injection_sites)
         
@@ -264,6 +272,7 @@ class CLASSES_HELPER():
                 sub_model = layer
                 return CLASSES_HELPER.get_layer(sub_model,layer_name)
             elif layer.name == layer_name:
+                print(f"FOUND CLASSES MODEL {layer.name}")
                 return layer
 
         
