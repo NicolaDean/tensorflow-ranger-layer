@@ -36,6 +36,7 @@ class RANGER_HELPER():
         layers = [layer for layer in self.model.layers]
         for l in layers:
             if isinstance(l,Ranger):
+                #print(f"Set mode {mode.name} to {l.name}")
                 l.set_ranger_mode(mode)
                 l.set_ranger_policy(policy)
                 l.set_ranger_granularity(granularity)
@@ -89,11 +90,11 @@ class RANGER_HELPER():
     
     def convert_model_v2(self):
         def match_cond(layer):
-            if     isinstance(layer,tf.keras.layers.Conv2D) \
-                or isinstance(layer,tf.keras.layers.Add) \
-                or isinstance(layer,tf.keras.layers.MaxPooling2D) \
-                or isinstance(layer,tf.keras.layers.AveragePooling2D) \
-                or isinstance(layer,tf.keras.layers.BatchNormalization):
+            if     isinstance(layer,tf.keras.layers.Conv2D):
+                #or isinstance(layer,tf.keras.layers.Add) \
+                #or isinstance(layer,tf.keras.layers.MaxPooling2D) \
+                #or isinstance(layer,tf.keras.layers.AveragePooling2D) \
+                #or isinstance(layer,tf.keras.layers.BatchNormalization):
                 return True
             else:
                 return False
