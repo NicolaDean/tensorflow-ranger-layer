@@ -8,7 +8,7 @@ import sys
 
 sys.path.append("./../../keras-yolo3/")
 
-from yolo import YOLO, detect_video
+from yolo import YOLO, detect_video, compute_iou
 from yolo3.model import preprocess_true_boxes, yolo_body, tiny_yolo_body, yolo_loss
 from yolo3.utils import get_random_data
 
@@ -91,8 +91,6 @@ def _main():
     for _ in range(5):
         dataset = next(train_gen)
         data   = dataset[0][0]
-
-        from PIL import Image, ImageFont, ImageDraw
         image_data = data
         #image_data = np.expand_dims(data[0], 0)  # Add batch dimension.
         RANGER.tune_model_range(image_data, reset=False)
@@ -104,6 +102,8 @@ def _main():
     n_inj = 1
     curr_injection = 0
     layer_injected_name = layer_names[curr_injection]
+    iou_mean = 0
+    update = True
     while True:
         print("loading Data")
         data   = dataset[0][0]
@@ -112,32 +112,42 @@ def _main():
         labels_2 = dataset[0][2]
         labels_3 = dataset[0][3]
 
-        from PIL import Image, ImageFont, ImageDraw
+        from PIL import Image
         
         img = np.uint8(data[0]*255)
         img = Image.fromarray(img)
 
         f1 = img
         f2 = copy.deepcopy(img)
-        #Vanilla
-        yolo.yolo_model = yolo_model
-        r_image         = yolo.detect_image(f1,y_true=boxes)
-        r_image         = np.asarray(r_image)
-
+        if update:
+            #Vanilla
+            yolo.yolo_model = yolo_model
+            r_image,v_out_boxes, v_out_scores, v_out_classes = yolo.detect_image(f1,y_true=False)
+            r_image         = np.asarray(r_image)
+            update = False
         #Faulty
         yolo.yolo_model = yolo_faulty
-        r_image_faulty  = yolo.detect_image(f2,y_true=boxes)
+        r_image_faulty,out_boxes, out_scores, out_classes  = yolo.detect_image(f2,y_true=False)
         r_image_faulty  = np.asarray(r_image_faulty)
 
+        iou_curr = compute_iou(v_out_boxes,v_out_classes,out_boxes, out_scores, out_classes)
+        if iou_curr == None:
+            iou_curr = 0
+        iou_mean = ((iou_mean * (n_inj-1)) + iou_curr)/n_inj
+        
         #PLOT IMAGE
-        cv2.putText(r_image, text="Vanilla", org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+        cv2.putText(r_image, text="Vanilla", org=(6, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                     fontScale=0.50, color=(255, 0, 0), thickness=2)
-        cv2.putText(r_image_faulty, text="Faulty", org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+        cv2.putText(r_image_faulty, text="Faulty", org=(6, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                     fontScale=0.50, color=(255, 0, 0), thickness=2)
-        cv2.putText(r_image_faulty, text=f"Num Injection = {n_inj}", org=(3, 30), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+        cv2.putText(r_image_faulty, text=f"Num Injection = {n_inj}", org=(6, 30), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                     fontScale=0.50, color=(255, 0, 0), thickness=2)
         cv2.putText(r_image_faulty, text=f"Layer Injected = [{layer_injected_name}]", org=(6, 45), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                     fontScale=0.50, color=(255, 0, 0), thickness=2)
+        cv2.putText(r_image_faulty, text=f"Current IOU = [{iou_curr}]", org=(6, 60), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                    fontScale=0.50, color=(0, 255, 50), thickness=2)
+        cv2.putText(r_image_faulty, text=f"Mean    IOU = [{iou_mean}]", org=(6, 75), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                    fontScale=0.50, color=(0, 255, 50), thickness=2)
         cv2.namedWindow("result", cv2.WINDOW_NORMAL)
 
         #Merge frame
@@ -147,9 +157,12 @@ def _main():
         k =  cv2.waitKey(1) & 0xFF
         
         if k == ord('q'):
+            #EXIT
             break
         elif k == ord('i'):
+            #CHANGE INJECTION POINT
             print("CHANGE INJECTION")
+            iou_mean = 0
             n_inj = 1
             curr_injection += 1
 
@@ -161,9 +174,14 @@ def _main():
             layer = CLASSES_HELPER.get_layer(yolo_ranger,"classes_" + layer_injected_name)
             layer.set_mode(ErrorSimulatorMode.enabled)  #Enable the Selected Injection point
         elif k == ord('d'):
+            #DISABLE ALL FAULT INJECTION
+            iou_mean = 0
             layer_injected_name = "Disabled"
             CLASSES.disable_all()
         elif k == ord('n'):
+            #CHANGE TO NEXT INPUT IMAGE
+            iou_mean = 0
+            update = True
             n_inj = 1
             dataset = next(train_gen)
         n_inj += 1
