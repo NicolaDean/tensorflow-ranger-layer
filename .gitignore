@@ -2,6 +2,7 @@
 classes
 datasets/GTSRB
 datasets/YOLO
+datasets/steering_wheel
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
