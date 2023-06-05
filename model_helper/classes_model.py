@@ -282,7 +282,7 @@ class CLASSES_HELPER():
     Given a Dataset and an injection point
     return the report of injection campaing on that layer
     '''
-    def get_layer_injection_report(self,layer_name,X,Y,experiment_name="Generic",num_of_iteration=100):
+    def get_layer_injection_report(self,layer_name,X,Y,experiment_name="Generic",num_of_iteration=100, evaluation = count_misclassification, ignore_misclassification = False):
         #TODO Check that this is an ErrorSimulator Layer
 
         self.disable_all()                          #Disable all InjectionPoints
@@ -303,14 +303,14 @@ class CLASSES_HELPER():
 
             vanilla_res = self.vanilla_model.predict(np.expand_dims(x, 0), verbose = 0) #TODO make it using a "Vanilla-mask" instead of predicting every time
             #print(f"[{np.argmax(vanilla_res,axis=-1)}] => {y}")
-            if np.argmax(vanilla_res,axis=-1) == y:
+            if np.argmax(vanilla_res,axis=-1) == y or ignore_misclassification:
                 BATCH_SIZE = 64
                 x_batch,y_batch = gen_batch(x,y,batch_size=self.num_of_injection)
                 self.model.run_eagerly=True
                 pred = self.model.predict(x_batch,batch_size=BATCH_SIZE)
                 ids = [layer.error_ids[i] for i in np.squeeze(layer.get_history()[1:])]
                 
-                errors, misclassifications = count_misclassification(y_batch,pred, ids)
+                errors, misclassifications = evaluation(y_batch,pred, ids)
                 
                 '''
                 #For "Num_of_injection" run we inject a random fault using the error model
@@ -344,13 +344,13 @@ class CLASSES_HELPER():
     1) concat_previous  = True will concatenate the previously generated report with the new one to facilitate creation of dataframe for complex experiments
     2) fault_tollerance = True will simply add to the Dataframe a column to indicate the presence of FaultTollerance techniques
     '''
-    def gen_model_injection_report(self,X,Y,experiment_name="Generic",num_of_iteration=100,concat_previous=False,file_name_report="report.csv",file_name_patterns="patterns.csv") -> pd.DataFrame:
+    def gen_model_injection_report(self,X,Y,experiment_name="Generic",num_of_iteration=100,concat_previous=False,file_name_report="report.csv",file_name_patterns="patterns.csv", evaluation = count_misclassification, ignore_misclassification = False) -> pd.DataFrame:
 
         #For Each Injection Point
         report = []
         error_prof_report = []
         for l in self.injection_points:
-            layer_report, ids_report = self.get_layer_injection_report(l,X,Y,experiment_name,num_of_iteration)
+            layer_report, ids_report = self.get_layer_injection_report(l,X,Y,experiment_name,num_of_iteration, evaluation = evaluation, ignore_misclassification = ignore_misclassification)
             report += layer_report
             error_prof_report += ids_report
 
