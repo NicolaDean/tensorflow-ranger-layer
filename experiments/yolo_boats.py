@@ -8,7 +8,7 @@ import sys
 
 sys.path.append("./../../keras-yolo3/")
 
-from yolo import YOLO, detect_video, compute_iou
+from yolo import YOLO, detect_video, compute_iou, compute_F1_score
 from yolo3.model import preprocess_true_boxes, yolo_body, tiny_yolo_body, yolo_loss
 from yolo3.utils import get_random_data
 
@@ -19,6 +19,9 @@ sys.path.append(LIBRARY_PATH)
 from model_helper.run_experiment import *
 
 sys.path.append("./")
+
+#https://universe.roboflow.com/ds/ayvQYBRoRC?key=PFozYAMcyw => DATASET CALCIATORI
+
 
 def _main():
     # './export/_annotations.txt'
@@ -75,8 +78,11 @@ def _main():
     yolo_model = yolo.yolo_model
 
     yolo_model.summary()
+    #keras.utils.plot_model(yolo_model,to_file="yolomodel.png" ,show_shapes=True)
+    #exit()
+    #layer_names = ['conv2d_3','conv2d_4','conv2d_6','conv2d_9','conv2d_57','conv2d_60','conv2d_65'] #conv2d_21 è dannoso, conv2d_71 non tanto
+    layer_names = ['conv2d_3']
 
-    layer_names = ['conv2d_3','conv2d_6','conv2d_56','conv2d_71'] #conv2d_21 è dannoso, conv2d_71 non tanto
     #if type(a_list) == list:
     RANGER,CLASSES = add_ranger_classes_to_model(yolo.yolo_model,layer_names,NUM_INJECTIONS=8)
     yolo_ranger = RANGER.get_model()
@@ -97,6 +103,7 @@ def _main():
     
     layer = CLASSES_HELPER.get_layer(yolo_ranger,"classes_" + layer_names[0])
     layer.set_mode(ErrorSimulatorMode.enabled)  #Enable the Selected Injection point
+    
     #NOW WE TRY INJECT FAULTS ON INPUTS
     dataset = next(train_gen)
     n_inj = 1
@@ -131,11 +138,14 @@ def _main():
         r_image_faulty  = np.asarray(r_image_faulty)
 
         iou_curr = compute_iou(v_out_boxes,v_out_classes,out_boxes, out_scores, out_classes)
+        res = compute_F1_score(v_out_boxes,v_out_classes,out_boxes, out_classes)
+        precision,recall,f1_score = res
+
         if iou_curr == None:
             iou_curr = 0
         iou_mean = ((iou_mean * (n_inj-1)) + iou_curr)/n_inj
         
-        #PLOT IMAGE
+        #ADD SOME TEXT TO THE PLOTTED IMAGE
         cv2.putText(r_image, text="Vanilla", org=(6, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                     fontScale=0.50, color=(255, 0, 0), thickness=2)
         cv2.putText(r_image_faulty, text="Faulty", org=(6, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
@@ -147,6 +157,8 @@ def _main():
         cv2.putText(r_image_faulty, text=f"Current IOU = [{iou_curr}]", org=(6, 60), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                     fontScale=0.50, color=(0, 255, 50), thickness=2)
         cv2.putText(r_image_faulty, text=f"Mean    IOU = [{iou_mean}]", org=(6, 75), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                    fontScale=0.50, color=(0, 255, 50), thickness=2)
+        cv2.putText(r_image_faulty, text=f"precison: [{precision}] , recall: [{recall}], f1_score: [{f1_score}]", org=(6, 75), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                     fontScale=0.50, color=(0, 255, 50), thickness=2)
         cv2.namedWindow("result", cv2.WINDOW_NORMAL)
 
@@ -163,7 +175,7 @@ def _main():
             #CHANGE INJECTION POINT
             print("CHANGE INJECTION")
             iou_mean = 0
-            n_inj = 1
+            n_inj = 0
             curr_injection += 1
 
             if curr_injection >= len(layer_names):
@@ -182,7 +194,7 @@ def _main():
             #CHANGE TO NEXT INPUT IMAGE
             iou_mean = 0
             update = True
-            n_inj = 1
+            n_inj = 0
             dataset = next(train_gen)
         n_inj += 1
 
