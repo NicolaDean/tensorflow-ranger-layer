@@ -396,7 +396,7 @@ def yolo_predict(yolov3,frame,plot=True):
 		return
 	# summarize the shape of the list of arrays
 	#print([a.shape for a in yhat])
-		
+	
 	boxes = list() 
 	for i in range(len(yhat)):
 		# decode the output of the network
@@ -409,13 +409,14 @@ def yolo_predict(yolov3,frame,plot=True):
 
 	# get the details of the detected objects
 	v_boxes, v_labels, v_scores = get_boxes(boxes, labels, class_threshold)
-	'''
+	
 	# summarize what we found
 	for i in range(len(v_boxes)):
 		print(v_labels[i], v_scores[i])
-	'''
+	
 	# draw what we found
 	draw_boxes2(frame, v_boxes, v_labels, v_scores)
+	return yhat
 #----------------------------------------------------------------
 #----------------------------------------------------------------
 #-------------CODE EXAMPLE---------------------------------------

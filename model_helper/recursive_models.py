@@ -45,10 +45,14 @@ def inject_layer_topology(layer,position,topology,math_cond,insert_layer_factory
 
         if len(layer_input) == 1:
             layer_input = layer_input[0]
+        elif len(layer_input) == 2:
+            tmp = layer_input[1]
+            layer_input[1] = layer_input[0]
+            layer_input[0] = tmp
 
         # Insert layer if name matches the regular expression
         if math_cond(layer):
-            print(layer.name)
+            print(f"Match for {layer.name}")
             if position == 'replace':
                 x = layer_input
             elif position == 'after':
@@ -143,7 +147,9 @@ def insert_layer_nonseq(model, math_cond, insert_layer_factory,
         x = inject_layer_topology(layer,position,network_dict,math_cond,insert_layer_factory)
 
         # Save tensor in output list if it is output in initial model
-        if layer.name in model.output_names:
+        if layer.name in model.output_names: #TODO => PROBABLY IT CAN BE DONE RECURSIVLY
+            print(f"OUTPUT LAYER => {layer.name}")
+            print(f"REPLACED LAYER => {x.name}")
             model_outputs.append(x)
 
     return Model(inputs=input_layer, outputs=model_outputs)

@@ -157,6 +157,7 @@ class Ranger(keras.layers.Layer):
         self.reset_weights(self.shape)
 
     def call(self, inputs):
+        
         switch_cases = {
             int(RangerModes.Training)   :lambda: inputs,
             int(RangerModes.RangeTuning):lambda: self.range_tuning_v2(inputs),
