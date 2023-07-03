@@ -2,6 +2,11 @@
 :warning: **[WORK IN PROGRESS]** :warning:\
 This is a Tensorflow Implementation of the ranger layer concept described in various paper:
 [Ranger Paper](https://arxiv.org/pdf/2003.13874.pdf)
+
+# HOW TO USE OUR HELPERS:
+- [Classes Injector Helper Tutorial](CLASSES_HELPER.md)
+- [Ranger Helper Tutorial](RANGER_HELPER.md)
+  
 # TODO LIST of Features:
 - [ ] Add __init__.py to make ranger easily includable
 - [x] Make Ranger Layer modes compatible with tesnorflow op graph (to make them work outside of eager mode)

@@ -111,6 +111,8 @@ def _main():
     layer_injected_name = layer_names[curr_injection]
     iou_mean = 0
     update = True
+
+    RANGER.set_ranger_mode(RangerModes.Disabled)
     while True:
         print("loading Data")
         data   = dataset[0][0]
