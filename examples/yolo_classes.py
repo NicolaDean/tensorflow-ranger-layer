@@ -129,8 +129,11 @@ def _main():
         img = Image.fromarray(img) 
 
         #Predict boxes for this image
-        r_image_faulty,out_boxes, out_scores, out_classes  = yolo.detect_image(img,y_true=False)
-        r_image_faulty  = np.asarray(r_image_faulty)
+        try:
+            r_image_faulty,out_boxes, out_scores, out_classes  = yolo.detect_image(img,y_true=False)
+            r_image_faulty  = np.asarray(r_image_faulty)
+        except Exception as e:
+            print("\033[93mERROR OCCURRED DUE TO DRAWING FUNCTION AND FAULT INJECTIONS\033[0m")
 
         #Show image
         cv2.imshow("result", r_image_faulty)
