@@ -97,8 +97,9 @@ def _main():
     layer_names = ['conv2d_3','conv2d_4','conv2d_6','conv2d_9','conv2d_57','conv2d_60','conv2d_65'] #conv2d_21 è dannoso, conv2d_71 non tanto
 
     #Add to the Yolo model the list of desired injection points
-    CLASSES     = add_classes_to_model(yolo_model,layer_names,NUM_INJECTIONS=8)
-    yolo_model  = CLASSES.get_model()
+    CLASSES         = add_classes_to_model(yolo_model,layer_names,NUM_INJECTIONS=8)
+    yolo_model      = CLASSES.get_model()
+    yolo.yolo_model = yolo_model #Set back the yolo model to the YOLO class
 
     #With this function we can enable a specific layer by name
     enable_classes_layer(CLASSES,layer_names[0])
@@ -108,11 +109,8 @@ def _main():
 
     #Some Loop parameters 
     dataset = next(train_gen)
-    n_inj = 1
     curr_injection = 0
     layer_injected_name = layer_names[curr_injection]
-    iou_mean = 0
-    update = True
 
 
     while True:
@@ -155,14 +153,11 @@ def _main():
             enable_classes_layer(CLASSES,layer_injected_name)
         elif k == ord('d'):
             #DISABLE ALL FAULT INJECTION
-            iou_mean = 0
             layer_injected_name = "Disabled"
             CLASSES.disable_all()
         elif k == ord('n'):
             #CHANGE TO NEXT INPUT IMAGE
-            n_inj = 0
             dataset = next(train_gen)
-        n_inj += 1
 
 
 if __name__ == '__main__':
