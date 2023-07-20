@@ -22,31 +22,32 @@ sys.path.append("./")
 
 
 def _main():
-    annotation_path_train = './../../keras-yolo3/train/_annotations.txt'
-    annotation_path_valid  = './../../keras-yolo3/valid/_annotations.txt' 
-    classes_path = './../../keras-yolo3/train/_classes.txt'         
-    anchors_path = './../../keras-yolo3/model_data/yolo_anchors.txt'
+
+    input_shape = (416,416) # multiple of 32, hw
+    annotation_path_train   = './../../keras-yolo3/train/_annotations.txt'
+    annotation_path_valid   = './../../keras-yolo3/valid/_annotations.txt' 
+    classes_path            = './../../keras-yolo3/train/_classes.txt'         
+    anchors_path            = './../../keras-yolo3/model_data/yolo_anchors.txt'
+
     class_names = get_classes(classes_path)
+    anchors     = get_anchors(anchors_path)
+    num_classes = len(class_names)
+    num_anchors = len(anchors)
+
+    h, w        = input_shape
+    image_input = Input(shape=(None, None, 3))
+    
     print("-------------------CLASS NAMES-------------------")
     print(class_names)
     print("-------------------CLASS NAMES-------------------")
-    num_classes = len(class_names)
-    anchors = get_anchors(anchors_path)
-
-    input_shape = (416,416) # multiple of 32, hw
 
     '''create the training model'''
     K.clear_session() # get a new session
-    image_input = Input(shape=(None, None, 3))
-    h, w = input_shape
-    num_anchors = len(anchors)
-
-    y_true = [Input(shape=(h//{0:32, 1:16, 2:8}[l], w//{0:32, 1:16, 2:8}[l], \
-        num_anchors//3, num_classes+5)) for l in range(3)]
+    
+    y_true = [Input(shape=(h//{0:32, 1:16, 2:8}[l], w//{0:32, 1:16, 2:8}[l], num_anchors//3, num_classes+5)) for l in range(3)]
 
     model_body = yolo_body(image_input, num_anchors//3, num_classes)
     print('Create YOLOv3 model with {} anchors and {} classes.'.format(num_anchors, num_classes))
-
 
     model_body.load_weights('./../../keras-yolo3/yolo_boats_final.h5', by_name=True, skip_mismatch=True)
     print('Load weights {}.'.format('./../../keras-yolo3/yolo_boats_final.h5'))
@@ -85,7 +86,7 @@ def _main():
     
     
     #RANGE TUNE THE YOLO MODEL
-    print("=============FINE TUNING=============")
+    print("=============RANGE TUNING=============")
     for _ in range(12):
         dataset = next(train_gen)
         data   = dataset[0][0]
@@ -98,9 +99,13 @@ def _main():
     assert isinstance(layer, ErrorSimulator)
     layer.set_mode(ErrorSimulatorMode.enabled)
 
-    model_loss = Lambda(yolo_loss, output_shape=(1,), name='yolo_loss',
-        arguments={'anchors': anchors, 'num_classes': num_classes, 'ignore_thresh': 0.5})(
-        [*model.output, *y_true])
+    model_loss = Lambda(yolo_loss, 
+                        output_shape=(1,), 
+                        name='yolo_loss',
+                        arguments={'anchors': anchors, 'num_classes': num_classes, 'ignore_thresh': 0.5}
+                        )\
+                        ([*model.output, *y_true])
+    
     model = Model([model.input, *y_true], model_loss)
 
     train_gen = data_generator_wrapper('./../../keras-yolo3/train/',train_lines, 32, input_shape, anchors, num_classes, random = True)
