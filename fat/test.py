@@ -2,7 +2,7 @@ from utils.training.gen_golden_annotations import *
 from utils.training.model_classes_init import *
 from train import *
 from utils.callbacks.layer_selection_policy import ClassesLayerPolicy
-
+from utils.callbacks.metrics_obj import Obj_metrics_callback
 #Declare path to dataset and hyperparameters
 batch_size  = 32
 input_shape = (416,416) # multiple of 32, hw
@@ -25,6 +25,8 @@ golden_gen_valid,valid_size = golden_generator(model,'./../../keras-yolo3/valid/
 injection_layer_callback = ClassesLayerPolicy(injection_points,CLASSES)
 
 #Declare object detection metrics callbacks
+metric_callback = Obj_metrics_callback('./../../keras-yolo3/valid/',classes_path,anchors_path,input_shape,model)
+#https://www.tensorflow.org/ranking/api_docs/python/tfr/keras/metrics/MeanAveragePrecisionMetric
 
 #Start training process
 print('Train on {} samples, val on {} samples, with batch size {}.'.format(train_size, valid_size, batch_size))
@@ -33,7 +35,7 @@ model.fit(golden_gen_train,
         validation_data=golden_gen_valid,
         validation_steps=max(1, valid_size//batch_size),
         epochs=100,
-        callbacks=[injection_layer_callback])
+        callbacks=[injection_layer_callback,metric_callback])
 
 #Save weights
 model.save_weights('trained_weights_final.h5')

@@ -4,8 +4,7 @@ from PIL import Image
 import sys
 import pathlib
 import os
-directory = str(pathlib.Path(__file__).parent.parent.absolute()) +  "/../../../keras-yolo3"
-sys.path.append(directory)
+
 
 from yolo3.model import yolo_eval
 
