@@ -1,5 +1,6 @@
 from tensorflow import keras
 import tensorflow as tf
+import tensorflow_probability as tfp
 import numpy as np
 import copy
 import sys
@@ -127,10 +128,12 @@ class Ranger(keras.layers.Layer):
         upper_threshold = tf.greater_equal(range_max,inputs)
         lower_threshold = tf.less_equal(range_min,inputs)
         
-        outputs = inputs
 
         def Clipper_Policy():
             #tf.print("Clipper")
+
+            #outputs = tfp.math.clip_by_value_preserve_gradient(inputs, clip_value_min=range_min, clip_value_max=range_max)
+
             in_range    = tf.logical_and(lower_threshold, upper_threshold)
             outputs     = tf.where(in_range,inputs,0)
             return outputs
@@ -149,6 +152,18 @@ class Ranger(keras.layers.Layer):
         
         return tf.switch_case(index,cases,default = Default_Policy)
     
+    def get_grad_threshold(self, inputs):
+        #in this case policy does not impact on the gradient: when out of range gradient = 0 
+
+        range_min   = self.w[0]
+        range_max   = self.w[1]
+
+        upper_threshold = tf.greater_equal(range_max, inputs)
+        lower_threshold = tf.less_equal(range_min,inputs)
+        in_range    = tf.logical_and(lower_threshold, upper_threshold)
+        return tf.cast(in_range, tf.float32)
+
+
     def print_w(self):
         tf.print(self.w)
 
@@ -156,6 +171,7 @@ class Ranger(keras.layers.Layer):
         print(f"RESET {self.name} Ranges")
         self.reset_weights(self.shape)
 
+    @tf.custom_gradient
     def call(self, inputs):
         
         switch_cases = {
@@ -166,7 +182,16 @@ class Ranger(keras.layers.Layer):
         }
 
         index = tf.convert_to_tensor(self.mode)
-        return tf.switch_case(index,switch_cases)
+        def grad(upstream):
+            switch_cases_grad = {
+            int(RangerModes.Training)   :lambda: tf.ones_like(inputs),
+            int(RangerModes.RangeTuning):lambda: tf.ones_like(inputs),
+            int(RangerModes.Inference)  :lambda: self.get_grad_threshold(inputs),
+            int(RangerModes.Disabled)   :lambda: tf.ones_like(inputs)
+            }
+            return tf.multiply(tf.switch_case(index,switch_cases_grad), upstream)
+        return tf.switch_case(index,switch_cases), grad
+        #return tf.switch_case(index,switch_cases)
 
                                          
 

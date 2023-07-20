@@ -21,7 +21,7 @@ from model_helper.run_experiment import *
 sys.path.append("./")
 
 #https://universe.roboflow.com/ds/ayvQYBRoRC?key=PFozYAMcyw => DATASET CALCIATORI
-
+#https://public.roboflow.com/object-detection
 
 def _main():
     # './export/_annotations.txt'
@@ -40,6 +40,7 @@ def _main():
 
     input_shape = (416,416) # multiple of 32, hw
 
+    #Annotation File contain a row for each sample in format [FileName, [Bounding Boxes], Class]
     with open(annotation_path_train) as f:
         train_lines = f.readlines()
     
@@ -49,20 +50,20 @@ def _main():
     print(f"Found {len(train_lines)} elements in {annotation_path_train}")
     print(f"Found {len(test_lines)} elements in {annotation_path_test}")
 
-
+    #We pass to a Data generator the list of available files in the annotation file
     train_gen = data_generator_wrapper('./../../keras-yolo3/train/',train_lines, 32, input_shape, anchors, num_classes)
     test_gen  = data_generator_wrapper('./../../keras-yolo3/test/',test_lines, 1, input_shape, anchors, num_classes)
 
-    
-
+    #We create a fake args variable compatible with the YOLO class.
     class args:
-        def __init__ (self, model_path = './../../keras-yolo3/yolo_boats_final.h5',
-                            anchors_path = './../../keras-yolo3/model_data/yolo_anchors.txt',
-                            classes_path =  './../../keras-yolo3/train/_classes.txt',
-                            score = 0.3,
-                            iou = 0.45,
-                            model_image_size = (416, 416),
+        def __init__ (self, model_path = './../../keras-yolo3/yolo_boats_final.h5',             #Put your weight file
+                            anchors_path = './../../keras-yolo3/model_data/yolo_anchors.txt',   #Keep default
+                            classes_path =  './../../keras-yolo3/train/_classes.txt',           #Put your class file (each row is a label name)
+                            score = 0.3,                    # 
+                            iou = 0.45,                     #IOU threshold
+                            model_image_size = (416, 416),  #Input image
                             gpu_num = 1):
+            
             self.model_path  = model_path
             self.anchors_path  = anchors_path
             self.classes_path  = classes_path
@@ -73,9 +74,12 @@ def _main():
 
     argss = args()
     print("loading yolo")
-    yolo        = YOLO(**vars(argss))
+    #Create the YOLO MODEL with the create args
+    yolo        = YOLO(**vars(argss))   
     yolo_faulty = YOLO(**vars(argss))
-    yolo_model = yolo.yolo_model
+
+    #We can get the keras model with parameter: yolo_model
+    yolo_model = yolo.yolo_model        
 
     yolo_model.summary()
     #keras.utils.plot_model(yolo_model,to_file="yolomodel.png" ,show_shapes=True)
@@ -111,8 +115,6 @@ def _main():
     layer_injected_name = layer_names[curr_injection]
     iou_mean = 0
     update = True
-
-    RANGER.set_ranger_mode(RangerModes.Disabled)
     while True:
         print("loading Data")
         data   = dataset[0][0]
@@ -141,7 +143,7 @@ def _main():
 
         iou_curr = compute_iou(v_out_boxes,v_out_classes,out_boxes, out_scores, out_classes)
         res = compute_F1_score(v_out_boxes,v_out_classes,out_boxes, out_classes)
-        precision,recall,f1_score = res
+        precision,recall,f1_score, TP, FP, FN = res
 
         if iou_curr == None:
             iou_curr = 0
