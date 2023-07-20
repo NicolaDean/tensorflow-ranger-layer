@@ -76,7 +76,11 @@ def generate_golden_annotations(model,data_gen,folder_path,annotation_lines, bat
     
     return images,y_golden #An array of shape (Images,golden_annotations)
 
-def golden_generator(model,folder_path,annotation_lines, batch_size, input_shape, anchors, num_classes, random):
+def golden_generator(model,folder_path,annotation_lines, batch_size, classes_path,anchors_path,input_shape, random):
+
+    class_names = get_classes(classes_path)
+    anchors     = get_anchors(anchors_path)
+    num_classes = len(class_names)
 
     #Generate Golden Labels
     images, y_golden = generate_golden_annotations(model,folder_path,annotation_lines, batch_size, input_shape, anchors, num_classes, random)

@@ -6,7 +6,7 @@ from keras.optimizers import Adam
 from keras.callbacks import TensorBoard, ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
 import sys
 
-sys.path.append("./../../keras-yolo3/")
+sys.path.append("./../keras-yolo3/")
 
 from yolo import YOLO, detect_video, compute_iou, compute_F1_score
 from yolo3.model import preprocess_true_boxes, yolo_body, tiny_yolo_body, yolo_loss
