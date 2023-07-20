@@ -52,11 +52,9 @@ def _main():
     print(f"Found {len(valid_lines)} elements in {annotation_path_valid}")
 
 
-    train_gen = data_generator_wrapper('./../../keras-yolo3/train/',train_lines, 32, input_shape, anchors, num_classes)
-    test_gen  = data_generator_wrapper('./../../keras-yolo3/test/',test_lines, 1, input_shape, anchors, num_classes)
-    valid_gen = data_generator_wrapper('./../../keras-yolo3/valid/',valid_lines, 1, input_shape, anchors, num_classes)
-
-    
+    train_gen = data_generator_wrapper('./../../keras-yolo3/train/',train_lines, 32, input_shape, anchors, num_classes, random = False)
+    test_gen  = data_generator_wrapper('./../../keras-yolo3/test/',test_lines, 1, input_shape, anchors, num_classes, random = False)
+    valid_gen = data_generator_wrapper('./../../keras-yolo3/valid/',valid_lines, 1, input_shape, anchors, num_classes, random = False)
 
     class args:
         def __init__ (self, model_path = './../../keras-yolo3/yolo_boats_final.h5',
@@ -81,11 +79,15 @@ def _main():
     yolo_model = yolo.yolo_model
 
     yolo_model.summary()
-
-    layer_names = ["conv2d", "batch_normalization"] 
-    layer_names += ["conv2d_"+str(i) for i in range(1, 20)]
-    layer_names += ["batch_normalization_"+str(i) for i in range(1, 20)]
-    layer_names += ["conv2d_42","conv2d_56","conv2d_71"]
+    
+    layer_names = ["conv2d_71"]
+    #layer_names = ["conv2d", "batch_normalization"] 
+    #layer_names += ["conv2d_"+str(i) for i in range(1, 10)]
+    #layer_names += ["batch_normalization_"+str(i) for i in range(2, 10)]
+    #layer_names += ["conv2d_25","conv2d_42","conv2d_56"]   #to remove
+    #layer_names += ["conv2d_25","conv2d_42","conv2d_56","conv2d_71"]
+    #layer_names += ["batch_normalization_25", "batch_normalization_42", "batch_normalization_56", "batch_normalization_71"]
+    print("Layers on which we inject faults: ", str(layer_names))
     #if type(a_list) == list:
     RANGER,CLASSES = add_ranger_classes_to_model(yolo.yolo_model,layer_names,NUM_INJECTIONS=30)
     yolo_ranger = RANGER.get_model()
@@ -97,7 +99,7 @@ def _main():
    
     #RAGE TUNE THE YOLO MODEL
     print("=============FINE TUNING=============")
-    for _ in range(5):
+    for _ in range(12):
         dataset = next(train_gen)
         data   = dataset[0][0]
         image_data = data
@@ -116,15 +118,16 @@ def _main():
     Error_ID_report = make_dataclass("Error_ID_report", 
                                      [("Set", str), ("Layer_name", str), ("Sample_id", int), ("Cardinality", int), ("Pattern", int), 
                                       ("IOU", float), ("Golden_num_boxes", int), ("Faulty_num_boxes", int), 
-                                      ("Precision", float), ("Recall", float), ("F1_score", float)])
+                                      ("Precision", float), ("Recall", float), ("F1_score", float),
+                                      ("True_positives", float), ("False_positives", float), ("False_negatives", float), ("Error", str)])
     
-    report = pd.DataFrame(columns = Error_ID_report.__annotations__.keys())
-    report.to_csv("../reports/yolo_boats_test.csv")
+    #report = pd.DataFrame(columns = Error_ID_report.__annotations__.keys())
+    #report.to_csv("../reports/yolo_boats_test_NOrandom.csv")
     report = []
 
     from PIL import Image
 
-    
+    '''
     # VALIDATION SET
 
     #for all layers we want to inject faults
@@ -148,6 +151,11 @@ def _main():
             r_image,v_out_boxes, v_out_scores, v_out_classes = yolo.detect_image(f1,y_true=False)
             r_image         = np.asarray(r_image)
 
+            if v_out_boxes.shape[0] == 0:
+                report += [Error_ID_report("valid", layer_name, sample_id, np.nan, np.nan, 
+                                           np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan,
+                                           "Golden prediction has no boxes")]
+                continue
             
             #150 faults injections are performed
             yolo.yolo_model = yolo_faulty
@@ -157,13 +165,22 @@ def _main():
             layer.set_mode(ErrorSimulatorMode.enabled)
 
 
-            for _ in range(150):
-                r_image_faulty,out_boxes, out_scores, out_classes  = yolo.detect_image(f2,y_true=False)
-                r_image_faulty  = np.asarray(r_image_faulty)
+            for _ in range(50):
+                err = ""
+                try:
+                    r_image_faulty,out_boxes, out_scores, out_classes  = yolo.detect_image(f2,y_true=False, no_draw = True)
+                    r_image_faulty  = np.asarray(r_image_faulty)
+                except Exception as e:
+                    err = e
 
                 # get injected error id (cardinality, pattern)
                 curr_error_id = layer.error_ids[layer.get_history()[-1]]
                 curr_error_id = np.squeeze(curr_error_id)
+
+                if err != "":
+                    report += [Error_ID_report("valid", layer_name, sample_id, curr_error_id[0], curr_error_id[1], 
+                                           np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, err)]
+                    continue
 
                 print("Boxes ", str(v_out_boxes))
 
@@ -172,14 +189,14 @@ def _main():
                 except:
                     iou_curr = np.nan
 
-                precision,recall,f1_score = compute_F1_score(v_out_boxes,v_out_classes,out_boxes, out_classes, iou_th=0.5)
+                precision,recall,f1_score, TP, FP, FN = compute_F1_score(v_out_boxes,v_out_classes,out_boxes, out_classes, iou_th=0.5)
 
                 report += [Error_ID_report("valid", layer_name, sample_id, curr_error_id[0], curr_error_id[1], 
-                                           iou_curr, v_out_boxes.shape[0], out_boxes.shape[0], precision, recall, f1_score)]
+                                           iou_curr, v_out_boxes.shape[0], out_boxes.shape[0], precision, recall, f1_score, TP, FP, FN, err)]
         report = pd.DataFrame(report)
-        report.to_csv("../reports/yolo_boats_test.csv", mode = 'a', header = False)
+        report.to_csv("../reports/yolo_boats_test_NOrandom.csv", mode = 'a', header = False)
         report = []
-                                    
+    '''         
     # TEST SET
 
     #for all layers we want to inject faults
@@ -203,6 +220,12 @@ def _main():
             r_image,v_out_boxes, v_out_scores, v_out_classes = yolo.detect_image(f1,y_true=False)
             r_image         = np.asarray(r_image)
 
+            if v_out_boxes.shape[0] == 0:
+                report += [Error_ID_report("test", layer_name, sample_id, np.nan, np.nan, 
+                                           np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan,
+                                           "Golden prediction has no boxes")]
+                continue
+
             print("Boxes  ", str(v_out_boxes))
             
             #150 faults injections are performed
@@ -213,24 +236,33 @@ def _main():
             layer.set_mode(ErrorSimulatorMode.enabled)
 
 
-            for _ in range(150):
-                r_image_faulty,out_boxes, out_scores, out_classes  = yolo.detect_image(f2,y_true=False)
-                r_image_faulty  = np.asarray(r_image_faulty)
+            for _ in range(50):
+                err = ""
+                try:
+                    r_image_faulty,out_boxes, out_scores, out_classes  = yolo.detect_image(f2,y_true=False, no_draw = True)
+                    r_image_faulty  = np.asarray(r_image_faulty)
+                except Exception as e:
+                    err = e
 
                 # get injected error id (cardinality, pattern)
                 curr_error_id = layer.error_ids[layer.get_history()[-1]]
                 curr_error_id = np.squeeze(curr_error_id)
 
+                if err != "":
+                    report += [Error_ID_report("test", layer_name, sample_id, curr_error_id[0], curr_error_id[1], 
+                                           np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, err)]
+                    continue
+
                 try:
                     iou_curr = compute_iou(v_out_boxes,v_out_classes,out_boxes, out_scores, out_classes).numpy()[0]
                 except:
                     iou_curr = np.nan
-                precision,recall,f1_score = compute_F1_score(v_out_boxes,v_out_classes,out_boxes, out_classes, iou_th=0.5)
+                precision,recall,f1_score, TP, FP, FN = compute_F1_score(v_out_boxes,v_out_classes,out_boxes, out_classes, iou_th=0.5)
 
                 report += [Error_ID_report("test", layer_name, sample_id, curr_error_id[0], curr_error_id[1], 
-                                           iou_curr, v_out_boxes.shape[0], out_boxes.shape[0], precision, recall, f1_score)]
+                                           iou_curr, v_out_boxes.shape[0], out_boxes.shape[0], precision, recall, f1_score, TP, FP, FN, err)]
         report = pd.DataFrame(report)
-        report.to_csv("../reports/yolo_boats_test.csv", mode = 'a', header = False)
+        report.to_csv("../reports/yolo_boats_test_NOrandom.csv", mode = 'a', header = False)
         report = []        
 
 

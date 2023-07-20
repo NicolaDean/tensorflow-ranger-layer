@@ -7,7 +7,7 @@ datasets/steering_wheel
 __pycache__/
 *.py[cod]
 *$py.class
-
+datasets/train_steering_wheel
 saved_models
 # C extensions
 *.so

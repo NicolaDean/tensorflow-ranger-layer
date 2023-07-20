@@ -74,7 +74,7 @@ class RANGER_HELPER():
     Take in input a classic CNN and add ranger layer for each Convolution
     TODO MAKE THIS PROCESS RECURSIVE SO THAT WE CAN CONVERT ALSO COMPEX MODEL LIKE RESNET (or models that use subblocks of layers)
     '''
-    def convert_model_from_src(model: tf.keras.Model):
+    def convert_model_from_src(self, model: tf.keras.Model):
         #TODO NOT IMPLEMENTED YET
         layers = [layer for layer in model.layers]
         new_model = keras.Sequential()
@@ -90,11 +90,12 @@ class RANGER_HELPER():
     
     def convert_model_v2(self):
         def match_cond(layer):
-            if     isinstance(layer,tf.keras.layers.Conv2D):
+            if     isinstance(layer,tf.keras.layers.Conv2D)\
+                 or isinstance(layer,tf.keras.layers.BatchNormalization):
                 #or isinstance(layer,tf.keras.layers.Add) \
                 #or isinstance(layer,tf.keras.layers.MaxPooling2D) \
                 #or isinstance(layer,tf.keras.layers.AveragePooling2D) \
-                #or isinstance(layer,tf.keras.layers.BatchNormalization):
+                
                 return True
             else:
                 return False
@@ -109,7 +110,7 @@ class RANGER_HELPER():
     Convert model given in input to RANGER into a Ranger model (Add Ranger after each layer Conv2D or MaxPool)
     '''
     def convert_model(self):
-        self.model = RANGER_HELPER.convert_model_from_src(self.model)
+        self.model = self.convert_model_from_src(self.model)
 
     '''
     Take in input a Dataset

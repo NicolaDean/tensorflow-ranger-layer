@@ -42,6 +42,7 @@ def inject_layer_topology(layer,position,topology,math_cond,insert_layer_factory
         
         # Determine input tensors
         layer_input = [topology['new_output_tensor_of'][layer_aux] for layer_aux in topology['input_layers_of'][layer.name]]
+        print("LAYER INPUT = ", str(layer_input))
 
         if len(layer_input) == 1:
             layer_input = layer_input[0]
