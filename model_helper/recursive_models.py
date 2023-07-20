@@ -17,7 +17,7 @@ from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.applications import ResNet50,VGG19
 from tensorflow.keras.layers import Conv2D, MaxPool2D, Dense, Flatten, Dropout,Input,Add, BatchNormalization
 from sklearn.metrics import accuracy_score
-from keras.engine import functional
+from tensorflow.python.keras.engine import functional
 print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
 import re

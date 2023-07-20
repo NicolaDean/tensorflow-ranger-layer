@@ -21,6 +21,21 @@ print("AAA:" + directory + LIBRARY_PATH)
 from model_helper.ranger_model import *
 from model_helper.classes_model import *
 
+def add_classes_to_model(model,layer_name,NUM_INJECTIONS=128):
+    num_requested_injection_sites = NUM_INJECTIONS * 5
+    #Load Model into Ranger Helper
+    CLASSES = CLASSES_HELPER(model)      
+
+    #Add Fault Injection Layer after each Convolutions or Maxpool
+    CLASSES.add_classes_by_name(layer_name,num_requested_injection_sites)
+    classes_model = CLASSES.get_model()
+    #classes_model.predict(x_val)
+    classes_model.summary()
+    #keras.utils.plot_model(classes_model,to_file="classes.png" ,show_shapes=True)
+    CLASSES.disable_all() #Disable all fault injection points
+
+    return CLASSES
+
 def add_ranger_classes_to_model(model,layer_name,NUM_INJECTIONS=128):
     #--------------------------------------------------------------------------------------------------
     #--------------------------RANGER SETUP------------------------------------------------------------
@@ -47,8 +62,8 @@ def add_ranger_classes_to_model(model,layer_name,NUM_INJECTIONS=128):
 
     num_requested_injection_sites = NUM_INJECTIONS * 5
     #Load Model into Ranger Helper
-    CLASSES = CLASSES_HELPER(ranger_model)         #PROBLEM HERE (??? TODO FIX ???) => With model work, with ranger_model not.. why??
-
+    CLASSES = CLASSES_HELPER(ranger_model)        
+    
     #Add Fault Injection Layer after each Convolutions or Maxpool
     CLASSES.add_classes_by_name(layer_name,num_requested_injection_sites)
     classes_model = CLASSES.get_model()

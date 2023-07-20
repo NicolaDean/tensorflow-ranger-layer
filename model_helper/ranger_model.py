@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow import keras
 from enum import Enum
 import sys
-from keras.engine import functional
+from tensorflow.python.keras.engine import functional
 from keras import Sequential
 from tqdm import tqdm
 from keras import losses

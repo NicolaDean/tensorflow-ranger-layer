@@ -1,7 +1,7 @@
 from keras import datasets, layers, models, losses
 from tensorflow import keras
 import tensorflow as tf
-from keras.engine import functional
+from tensorflow.python.keras.engine import functional
 from keras import Sequential
 import sys
 import os
