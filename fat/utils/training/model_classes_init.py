@@ -13,6 +13,7 @@ sys.path.append(directory +  "/../../../keras-yolo3")
 from yolo import YOLO, detect_video, compute_iou, compute_F1_score
 from yolo3.model import preprocess_true_boxes, yolo_body, tiny_yolo_body, yolo_loss
 from yolo3.utils import get_random_data
+from train1 import *
 
 sys.path.append(directory +  "/../../")
 from model_helper.run_experiment import *

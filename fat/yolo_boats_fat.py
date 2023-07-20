@@ -6,7 +6,6 @@ from keras.optimizers import Adam
 from keras.callbacks import TensorBoard, ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
 import sys
 
-<<<<<<< HEAD
 sys.path.append("./../../keras-yolo3/")
 
 from yolo import YOLO, detect_video, compute_iou, compute_F1_score
@@ -14,15 +13,6 @@ from yolo3.model import preprocess_true_boxes, yolo_body, tiny_yolo_body, yolo_l
 from yolo3.utils import get_random_data
 
 from train1 import *
-=======
-sys.path.append("./../keras-yolo3/")
-
-from yolo import YOLO, detect_video, compute_iou, compute_F1_score
-from yolo3.model import preprocess_true_boxes, yolo_body, tiny_yolo_body, yolo_loss
-from yolo3.utils import get_random_data
-
-from train import *
->>>>>>> aa86e7aa2f288b037c413c22e3d504d7d6ea3430
 
 LIBRARY_PATH = "./../"
 sys.path.append(LIBRARY_PATH)

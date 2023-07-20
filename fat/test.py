@@ -17,6 +17,7 @@ injection_points = [""]
 #Build a YOLO model with CLASSES and RANGER Integrated [TODO pass here the list of injection points]
 model, CLASSES, RANGER = build_yolo_classes(classes_path,anchors_path,input_shape)
 
+exit()
 #Construct golden labels for train using robustness instead of accuracy
 golden_gen_train,train_size = golden_generator(model,'./../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True)
 golden_gen_valid,valid_size = golden_generator(model,'./../../keras-yolo3/valid/',batch_size,classes_path,anchors_path,input_shape,random=True)
