@@ -264,7 +264,7 @@ class CLASSES_HELPER():
     def get_injection_points(self):
         return self.injection_points
 
-    def get_layer(model,layer_name):
+    def get_layer(model,layer_name,verbose=True):
         layers      = [layer for layer in model.layers]
         for layer in layers:
             if isinstance (layer, keras.Model):
@@ -272,19 +272,22 @@ class CLASSES_HELPER():
                 sub_model = layer
                 return CLASSES_HELPER.get_layer(sub_model,layer_name)
             elif layer.name == layer_name:
-                print(f"FOUND CLASSES MODEL {layer.name}")
+                if verbose:
+                    print(f"FOUND CLASSES MODEL {layer.name}")
                 return layer
 
         
     '''
     Disable All FaultInjection Layers
     '''
-    def disable_all(self):
-        print("Disable All Fault injection point")
-        print(self.injection_points)
+    def disable_all(self,verbose=True):
+        if verbose:
+            print("Disable All Fault injection point")
+            print(self.injection_points)
         for l in self.injection_points:
-            print(f"Injection point {l}")
-            layer = CLASSES_HELPER.get_layer(self.model,l)
+            if verbose:
+                print(f"Injection point {l}")
+            layer = CLASSES_HELPER.get_layer(self.model,l,verbose=verbose)
             layer.set_mode(ErrorSimulatorMode.disabled)
     
     '''

@@ -18,7 +18,7 @@ from train1 import *
 sys.path.append(directory +  "/../../")
 from model_helper.run_experiment import *
 
-def build_yolo_classes(classes_path,anchors_path,input_shape):
+def build_yolo_classes(classes_path,anchors_path,input_shape,injection_points,classes_enable=True):
 
     class_names = get_classes(classes_path)
     anchors     = get_anchors(anchors_path)
@@ -26,7 +26,7 @@ def build_yolo_classes(classes_path,anchors_path,input_shape):
     num_anchors = len(anchors)
 
     h, w        = input_shape
-    image_input = Input(shape=(None, None, 3))
+    
     
     print("-------------------CLASS NAMES-------------------")
     print(class_names)
@@ -34,7 +34,7 @@ def build_yolo_classes(classes_path,anchors_path,input_shape):
 
     '''create the training model'''
     K.clear_session() # get a new session
-    
+    image_input = Input(shape=(None, None, 3))
     y_true = [Input(shape=(h//{0:32, 1:16, 2:8}[l], w//{0:32, 1:16, 2:8}[l], num_anchors//3, num_classes+5)) for l in range(3)]
 
     model_body = yolo_body(image_input, num_anchors//3, num_classes)
@@ -42,19 +42,25 @@ def build_yolo_classes(classes_path,anchors_path,input_shape):
 
     model_body.load_weights('./../../keras-yolo3/yolo_boats_final.h5', by_name=True, skip_mismatch=True)
     print('Load weights {}.'.format('./../../keras-yolo3/yolo_boats_final.h5'))
+    
+    vanilla_body = model_body
 
     for i in range(len(model_body.layers)):
             model_body.layers[i].trainable = True
-
-    RANGER,CLASSES = add_ranger_classes_to_model(model_body,"batch_normalization_6",NUM_INJECTIONS=30)
-    yolo_ranger = RANGER.get_model()
-    yolo_ranger.summary()
-    model = yolo_ranger
     
-    CLASSES.set_model(model)
-    CLASSES.disable_all()
-
-    model.summary()
+    if classes_enable:
+        RANGER,CLASSES = add_ranger_classes_to_model(model_body,injection_points,NUM_INJECTIONS=30)
+        yolo_ranger = RANGER.get_model()
+        #yolo_ranger.summary()
+        model = yolo_ranger
+        
+        CLASSES.set_model(model)
+        CLASSES.disable_all()
+    else:
+        CLASSES = None
+        RANGER  = None
+        model = model_body
+    #model.summary()
 
     model_loss = Lambda(yolo_loss, 
                         output_shape=(1,), 
@@ -67,4 +73,4 @@ def build_yolo_classes(classes_path,anchors_path,input_shape):
 
     model.compile(optimizer=Adam(lr=1e-4), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
 
-    return model, CLASSES, RANGER
+    return model, CLASSES, RANGER, vanilla_body

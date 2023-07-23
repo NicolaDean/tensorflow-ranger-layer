@@ -1,11 +1,13 @@
+
 from utils.training.gen_golden_annotations import *
 from utils.training.model_classes_init import *
+from utils.training.ranger_helper import *
 
 from utils.callbacks.layer_selection_policy import ClassesLayerPolicy
 from utils.callbacks.metrics_obj import Obj_metrics_callback
 
 #Declare path to dataset and hyperparameters
-batch_size  = 32
+batch_size  = 16
 input_shape = (416,416) # multiple of 32, hw
 annotation_path_train   = './../../keras-yolo3/train/_annotations.txt'
 annotation_path_valid   = './../../keras-yolo3/valid/_annotations.txt' 
@@ -15,32 +17,23 @@ anchors_path            = './../../keras-yolo3/model_data/yolo_anchors.txt'
 #Declare list of injection layers 
 #injection_points = ["conv2d_71"]
 injection_points = ["conv2d", "batch_normalization"] 
-injection_points += ["conv2d_"+str(i) for i in range(1, 10)]
-injection_points += ["batch_normalization_"+str(i) for i in range(2, 10)]
+#injection_points += ["conv2d_"+str(i) for i in range(1, 10)]
+#injection_points += ["batch_normalization_"+str(i) for i in range(2, 10)]
 #injection_points += ["conv2d_25","conv2d_42","conv2d_56"]   #to remove
 #injection_points += ["conv2d_25","conv2d_42","conv2d_56","conv2d_71"]
 #injection_points += ["batch_normalization_25", "batch_normalization_42", "batch_normalization_56", "batch_normalization_71"]
 
 #Build a YOLO model with CLASSES and RANGER Integrated [TODO pass here the list of injection points]
-model, CLASSES, RANGER, vanilla_body = build_yolo_classes(classes_path,anchors_path,input_shape,injection_points,classes_enable=False)
+model, CLASSES, RANGER, vanilla_body = build_yolo_classes(classes_path,anchors_path,input_shape,injection_points,classes_enable=True)
 #vanilla_body.summary()
 
-golden_gen_valid,valid_size = get_golden_generator(vanilla_body,'./../../keras-yolo3/valid/',1,classes_path,anchors_path,input_shape,random=True)
+golden_gen_train,train_size  = get_vanilla_generator('./../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True)
+golden_gen_valid,valid_size  = get_vanilla_generator('./../../keras-yolo3/valid/',batch_size,classes_path,anchors_path,input_shape,random=True)
 
-next(golden_gen_valid)
-exit()
-#(32, 13, 13, 3, 10)
-#Construct golden labels for train using robustness instead of accuracy
-golden_gen_train,train_size = get_golden_generator(vanilla_body,'./../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True)
-golden_gen_valid,valid_size = get_golden_generator(vanilla_body,'./../../keras-yolo3/valid/',batch_size,classes_path,anchors_path,input_shape,random=True)
-
+ranger_domain_tuning(RANGER,golden_gen_train,10)
 
 #Declare injection point selection callback
-#injection_layer_callback = ClassesLayerPolicy(CLASSES)
-
-#Declare object detection metrics callbacks
-#metric_callback = Obj_metrics_callback('./../../keras-yolo3/valid/',classes_path,anchors_path,input_shape,model)
-#https://www.tensorflow.org/ranking/api_docs/python/tfr/keras/metrics/MeanAveragePrecisionMetric
+injection_layer_callback = ClassesLayerPolicy(CLASSES)
 
 #Start training process
 print('Train on {} samples, val on {} samples, with batch size {}.'.format(train_size, valid_size, batch_size))
@@ -48,8 +41,8 @@ model.fit(golden_gen_train,
         steps_per_epoch=max(1, train_size//batch_size),
         validation_data=golden_gen_valid,
         validation_steps=max(1, valid_size//batch_size),
-        epochs=5,
-        callbacks=[])
+        epochs=2,
+        callbacks=[injection_layer_callback])
 
 #Save weights
 model.save_weights('trained_weights_final.h5')

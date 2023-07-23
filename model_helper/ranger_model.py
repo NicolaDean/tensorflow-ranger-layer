@@ -122,9 +122,9 @@ class RANGER_HELPER():
         if reset:
             self.reset_ranger_layers()
             
-        print("Tuning the moodel Range Domain")
+        #print("Tuning the moodel Range Domain")
         self.set_ranger_mode(RangerModes.RangeTuning)
-        self.model.predict(X)
+        self.model.predict(X,verbose=False)
 
         #TODO => PRINT THE MODELS RANGES
         self.set_ranger_mode(RangerModes.Inference)
