@@ -5,6 +5,7 @@ from keras.models import Model
 from keras.optimizers import Adam
 from keras.callbacks import TensorBoard, ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
 import sys
+from tqdm import tqdm
 
 sys.path.append("./../../keras-yolo3/")
 
@@ -57,7 +58,7 @@ def _main():
     valid_gen = data_generator_wrapper('./../../keras-yolo3/valid/',valid_lines, 1, input_shape, anchors, num_classes, random = False)
 
     class args:
-        def __init__ (self, model_path = './../../keras-yolo3/yolo_boats_final.h5',
+        def __init__ (self, model_path = './../../keras-yolo3/uniform_batch_v2.h5',
                             anchors_path = './../../keras-yolo3/model_data/yolo_anchors.txt',
                             classes_path =  './../../keras-yolo3/train/_classes.txt',
                             score = 0.3,
@@ -79,27 +80,26 @@ def _main():
     yolo_model = yolo.yolo_model
 
     yolo_model.summary()
+
+    layer_names = ["conv2d", "batch_normalization"] 
+    layer_names += ["conv2d_"+str(i) for i in range(1, 10)]
+    layer_names += ["batch_normalization_"+str(i) for i in range(2, 10)]
+    layer_names += ["conv2d_25","conv2d_42","conv2d_56","conv2d_71"]
+    layer_names += ["batch_normalization_25", "batch_normalization_42", "batch_normalization_56", "batch_normalization_71"]
     
-    layer_names = ["conv2d_71"]
-    #layer_names = ["conv2d", "batch_normalization"] 
-    #layer_names += ["conv2d_"+str(i) for i in range(1, 10)]
-    #layer_names += ["batch_normalization_"+str(i) for i in range(2, 10)]
-    #layer_names += ["conv2d_25","conv2d_42","conv2d_56"]   #to remove
-    #layer_names += ["conv2d_25","conv2d_42","conv2d_56","conv2d_71"]
-    #layer_names += ["batch_normalization_25", "batch_normalization_42", "batch_normalization_56", "batch_normalization_71"]
     print("Layers on which we inject faults: ", str(layer_names))
     #if type(a_list) == list:
     RANGER,CLASSES = add_ranger_classes_to_model(yolo.yolo_model,layer_names,NUM_INJECTIONS=30)
     yolo_ranger = RANGER.get_model()
     yolo_ranger.summary()
     CLASSES.set_model(yolo_ranger)
-    CLASSES.disable_all()
+    CLASSES.disable_all(verbose=False)
 
     yolo_faulty = yolo_ranger
    
     #RAGE TUNE THE YOLO MODEL
     print("=============FINE TUNING=============")
-    for _ in range(12):
+    for _ in tqdm(range(12)):
         dataset = next(train_gen)
         data   = dataset[0][0]
         image_data = data
@@ -124,16 +124,20 @@ def _main():
     #report = pd.DataFrame(columns = Error_ID_report.__annotations__.keys())
     #report.to_csv("../reports/yolo_boats_test_NOrandom.csv")
     report = []
-
+    OUTPUT_NAME = "../reports/yolo_boats_post_FAT_batch_v1.csv"
+    NUM_ITERATATION_PER_SAMPLE = 50
     from PIL import Image
 
-    '''
+    
     # VALIDATION SET
 
     #for all layers we want to inject faults
     for layer_name in layer_names:
+        print("-------------------------------")
+        print(f'Injection on layer {layer_name}')
+        print("-------------------------------")
         #for all test samples
-        for sample_id in range(105):
+        for sample_id in tqdm(range(len(valid_lines))):
             #load data
             dataset = next(valid_gen)
             data   = dataset[0][0]
@@ -148,7 +152,7 @@ def _main():
 
             #vanilla prediction
             yolo.yolo_model = yolo_model
-            r_image,v_out_boxes, v_out_scores, v_out_classes = yolo.detect_image(f1,y_true=False)
+            r_image,v_out_boxes, v_out_scores, v_out_classes = yolo.detect_image(f1,y_true=False,verbose=False)
             r_image         = np.asarray(r_image)
 
             if v_out_boxes.shape[0] == 0:
@@ -159,16 +163,16 @@ def _main():
             
             #150 faults injections are performed
             yolo.yolo_model = yolo_faulty
-            CLASSES.disable_all()
-            layer = CLASSES_HELPER.get_layer(yolo_faulty,"classes_" + layer_name)
+            CLASSES.disable_all(verbose=False)
+            layer = CLASSES_HELPER.get_layer(yolo_faulty,"classes_" + layer_name,verbose=False)
             assert isinstance(layer, ErrorSimulator)
             layer.set_mode(ErrorSimulatorMode.enabled)
 
 
-            for _ in range(50):
+            for _ in range(NUM_ITERATATION_PER_SAMPLE):
                 err = ""
                 try:
-                    r_image_faulty,out_boxes, out_scores, out_classes  = yolo.detect_image(f2,y_true=False, no_draw = True)
+                    r_image_faulty,out_boxes, out_scores, out_classes  = yolo.detect_image(f2,y_true=False, no_draw = True,verbose=False)
                     r_image_faulty  = np.asarray(r_image_faulty)
                 except Exception as e:
                     err = e
@@ -182,21 +186,21 @@ def _main():
                                            np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, err)]
                     continue
 
-                print("Boxes ", str(v_out_boxes))
+                #print("Boxes ", str(v_out_boxes))
 
                 try:
                     iou_curr = compute_iou(v_out_boxes,v_out_classes,out_boxes, out_scores, out_classes).numpy()[0]
                 except:
                     iou_curr = np.nan
 
-                precision,recall,f1_score, TP, FP, FN = compute_F1_score(v_out_boxes,v_out_classes,out_boxes, out_classes, iou_th=0.5)
+                precision,recall,f1_score, TP, FP, FN = compute_F1_score(v_out_boxes,v_out_classes,out_boxes, out_classes, iou_th=0.5,verbose=False)
 
                 report += [Error_ID_report("valid", layer_name, sample_id, curr_error_id[0], curr_error_id[1], 
                                            iou_curr, v_out_boxes.shape[0], out_boxes.shape[0], precision, recall, f1_score, TP, FP, FN, err)]
         report = pd.DataFrame(report)
-        report.to_csv("../reports/yolo_boats_test_NOrandom.csv", mode = 'a', header = False)
+        report.to_csv(OUTPUT_NAME, mode = 'a', header = False)
         report = []
-    '''         
+    exit()
     # TEST SET
 
     #for all layers we want to inject faults
@@ -262,7 +266,7 @@ def _main():
                 report += [Error_ID_report("test", layer_name, sample_id, curr_error_id[0], curr_error_id[1], 
                                            iou_curr, v_out_boxes.shape[0], out_boxes.shape[0], precision, recall, f1_score, TP, FP, FN, err)]
         report = pd.DataFrame(report)
-        report.to_csv("../reports/yolo_boats_test_NOrandom.csv", mode = 'a', header = False)
+        report.to_csv(OUTPUT_NAME, mode = 'a', header = False)
         report = []        
 
 

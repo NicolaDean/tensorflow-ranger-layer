@@ -18,7 +18,7 @@ from train1 import *
 sys.path.append(directory +  "/../../")
 from model_helper.run_experiment import *
 
-def build_yolo_classes(classes_path,anchors_path,input_shape,injection_points,classes_enable=True):
+def build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,injection_points,classes_enable=True,freeze_body=False):
 
     class_names = get_classes(classes_path)
     anchors     = get_anchors(anchors_path)
@@ -40,13 +40,24 @@ def build_yolo_classes(classes_path,anchors_path,input_shape,injection_points,cl
     model_body = yolo_body(image_input, num_anchors//3, num_classes)
     print('Create YOLOv3 model with {} anchors and {} classes.'.format(num_anchors, num_classes))
 
-    model_body.load_weights('./../../keras-yolo3/yolo_boats_final.h5', by_name=True, skip_mismatch=True)
-    print('Load weights {}.'.format('./../../keras-yolo3/yolo_boats_final.h5'))
-    
+    model_body.load_weights(WEIGHT_FILE_PATH, by_name=True, skip_mismatch=True)
+    print('Load weights {}.'.format(WEIGHT_FILE_PATH))
+
+
+    if freeze_body:
+        freeze_body = 2
+        # Freeze darknet53 body or freeze all but 3 output layers.
+        num = (185, len(model_body.layers)-3)[freeze_body-1]
+        for i in range(num): model_body.layers[i].trainable = False
+        print('Freeze the first {} layers of total {} layers.'.format(num, len(model_body.layers)))
+    else:
+        for i in range(len(model_body.layers)):
+            model_body.layers[i].trainable = True
+
+
     vanilla_body = model_body
 
-    for i in range(len(model_body.layers)):
-            model_body.layers[i].trainable = True
+    
     
     if classes_enable:
         RANGER,CLASSES = add_ranger_classes_to_model(model_body,injection_points,NUM_INJECTIONS=30)
@@ -71,6 +82,9 @@ def build_yolo_classes(classes_path,anchors_path,input_shape,injection_points,cl
     
     model = Model([model.input, *y_true], model_loss)
 
-    model.compile(optimizer=Adam(lr=1e-4), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
-
-    return model, CLASSES, RANGER, vanilla_body
+    if not freeze_body:
+        model.compile(optimizer=Adam(lr=1e-4), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
+    else:
+         model.compile(optimizer=Adam(lr=1e-2), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
+ 
+    return model, CLASSES, RANGER, vanilla_body,model_body

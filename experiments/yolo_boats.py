@@ -56,7 +56,7 @@ def _main():
 
     #We create a fake args variable compatible with the YOLO class.
     class args:
-        def __init__ (self, model_path = './../../keras-yolo3/yolo_boats_final.h5',             #Put your weight file
+        def __init__ (self, model_path = './../../keras-yolo3/boats_final.h5',             #Put your weight file
                             anchors_path = './../../keras-yolo3/model_data/yolo_anchors.txt',   #Keep default
                             classes_path =  './../../keras-yolo3/train/_classes.txt',           #Put your class file (each row is a label name)
                             score = 0.3,                    # 
