@@ -50,7 +50,7 @@ def _main():
     model_body.load_weights('./../../keras-yolo3/yolo_boats_final.h5', by_name=True, skip_mismatch=True)
     print('Load weights {}.'.format('./../../keras-yolo3/yolo_boats_final.h5'))
     
-    RANGER,CLASSES = add_ranger_classes_to_model(model_body,["conv2d"],NUM_INJECTIONS=30)
+    RANGER,CLASSES = add_ranger_classes_to_model(model_body,["batch_normalization_25"],NUM_INJECTIONS=30)
     yolo_ranger = RANGER.get_model()
     yolo_ranger.summary()
     model_body = yolo_ranger
@@ -80,7 +80,7 @@ def _main():
     train_gen = data_generator_wrapper('./../../keras-yolo3/train/',train_lines, 32, input_shape, anchors, num_classes, random = False)
     
     
-    '''
+    
     #RANGE TUNE THE YOLO MODEL
     print("=============FINE TUNING=============")
     for _ in range(12):
@@ -90,7 +90,7 @@ def _main():
         #image_data = np.expand_dims(data[0], 0)  # Add batch dimension.
         RANGER.tune_model_range(image_data, reset=False)
     
-    '''
+    
     
     '''
     #CREATION ANNOTATIONS FROM GOLDEN MODEL PREDICTIONS
@@ -141,20 +141,19 @@ def _main():
         print(resultString)
         golden_valid_lines.append(resultString)    
     '''
-    '''
+    
     #UNLOCK CLASSES
-    layer = CLASSES_HELPER.get_layer(model_body,"classes_conv2d")
+    layer = CLASSES_HELPER.get_layer(model_body,"classes_batch_normalization_25")
     assert isinstance(layer, ErrorSimulator)
     layer.set_mode(ErrorSimulatorMode.enabled)
     
-    '''
 
     model_loss = Lambda(yolo_loss, output_shape=(1,), name='yolo_loss',
         arguments={'anchors': anchors, 'num_classes': num_classes, 'ignore_thresh': 0.7})(
         [*model_body.output, *y_true])
     
     #model = RANGER.get_model()
-    RANGER.set_ranger_mode(RangerModes.Disabled)
+    #RANGER.set_ranger_mode(RangerModes.Disabled)
 
     model = Model([model_body.input, *y_true], model_loss)
     model.summary()

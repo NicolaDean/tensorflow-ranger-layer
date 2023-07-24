@@ -85,6 +85,6 @@ def build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,in
     if not freeze_body:
         model.compile(optimizer=Adam(lr=1e-4), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
     else:
-         model.compile(optimizer=Adam(lr=1e-2), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
+         model.compile(optimizer=Adam(lr=1e-3), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
  
     return model, CLASSES, RANGER, vanilla_body,model_body
