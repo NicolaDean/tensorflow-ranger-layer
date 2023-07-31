@@ -41,7 +41,7 @@ class Obj_metrics_callback(keras.callbacks.Callback):
         print("-----F1 SCOREEE--------")
         print("-----------------------")
 
-        TP,FP,FN = 0,0,0
+        TP,FP,FN,F1 = 0,0,0,0
         for idx in tqdm(range(0,self.valid_size)):
             data = next(self.valid_gen)
             image_data = data[0][0]
@@ -54,33 +54,53 @@ class Obj_metrics_callback(keras.callbacks.Callback):
 
             y_true_classes = np.reshape(y_true_classes, len(y_true_classes))
 
+            y_true_boxes[:, [0, 1]] = y_true_boxes[:, [1, 0]]
+            y_true_boxes[:, [2, 3]] = y_true_boxes[:, [3, 2]]
+
             y_true_boxes  = y_true_boxes.tolist()
             y_true_classes= y_true_classes.tolist()
 
             yolo_out = self.model_body.predict(image_data,verbose=False)
             
-            boxes, scores, classes = yolo_eval(yolo_out, self.anchors,self.num_classes, self.input_shape,score_threshold=0.7, iou_threshold=0.5)
+            boxes, scores, classes = yolo_eval(yolo_out, self.anchors,self.num_classes, self.input_shape,score_threshold=0.4, iou_threshold=0.5)
+            '''
+            print("TRUE")
+            print(y_true_boxes)
+            print(y_true_classes)
+            print("PREDICTED")
+            print(boxes)
+            print(classes)
+            '''
 
             precision,recall,f1, tp, fp, fn = compute_F1_score(y_true_boxes,y_true_classes,boxes, classes, iou_th=0.5,verbose=False)
-
+            F1 += f1
             TP += tp
             FP += fp
             FN += fn
             #Compute Precision, Recall, F1_score
-        if TP + FP != 0:
+        if (TP + FP) != 0:
             precision = TP / (TP + FP) 
         else:
             precision = 0
 
-        if TP + FN != 0:
+        if (TP + FN) != 0:
             recall    = TP / (TP + FN)
         else:
             recall = 0
 
-        if precision + recall != 0:
+        if (precision + recall) != 0:
             f1_score  = (2*precision*recall)/(precision + recall)
         else:
             f1_score = None
 
+        if (FP+FN+TP) != 0:
+            Accuracy = (TP) / (FP+FN+TP)
+        else:
+            Accuracy = None
+
+        F1 = F1 / self.valid_size
         keys = list(logs.keys())
-        print("End epoch {} of training; Precison: {}, Recall: {}, F1: {}".format(epoch, precision,recall,f1_score))
+        print("End epoch {} of training; Precison: {}, Recall: {}, F1: {}, accuracy: {}".format(epoch, precision,recall,f1_score,Accuracy))
+    
+    def on_train_end(self, logs=None):
+        self.on_epoch_end(1,logs)
