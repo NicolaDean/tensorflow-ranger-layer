@@ -48,6 +48,7 @@ def load_image(folder_path, input_shape, annotation_line,max_boxes=20, proc_img=
             image_data = np.array(new_image, dtype='float32')
             image_data /= 255.
     
+    
     # correct boxes
     box_data = np.zeros((max_boxes,5))
     if len(box)>0:
@@ -59,6 +60,7 @@ def load_image(folder_path, input_shape, annotation_line,max_boxes=20, proc_img=
     #print(f'True label = {box_data[0:3]}')
     
     return image_data, box_data
+    
 
 def generate_golden_annotations(model,folder_path,annotation_lines, batch_size, input_shape, anchors, num_classes, random):
     '''
@@ -84,13 +86,12 @@ def generate_golden_annotations(model,folder_path,annotation_lines, batch_size, 
         #Execute YOLO prediction
         yolo_out = model.predict(image_data,verbose=0)
         #Execute post processing of yolo result
-        out_boxes, out_scores, out_classes = yolo_eval(yolo_out, anchors,num_classes, input_shape,score_threshold=0.7, iou_threshold=0.5)
+        out_boxes, out_scores, out_classes = yolo_eval(yolo_out, anchors,num_classes, input_shape,score_threshold=0.5, iou_threshold=0.5)
         #Extract yolo golden label
         
         y_golden = np.column_stack((out_boxes,out_classes))
         y_golden[:, [0, 1]] = y_golden[:, [1, 0]]
         y_golden[:, [2, 3]] = y_golden[:, [3, 2]]
-        
         print(f'Golden labels {y_golden}')
         #print(y_golden)
         max_boxes = 20
@@ -129,6 +130,7 @@ def golden_generator(model,folder_path, batch_size, classes_path,anchors_path,in
     #Generate Golden Labels
     images, y_golden = generate_golden_annotations(model,folder_path,annotation_lines, batch_size, input_shape, anchors, num_classes, random=random)
 
+
     n = len(annotation_lines)
     i = 0
     #While app run
@@ -142,12 +144,12 @@ def golden_generator(model,folder_path, batch_size, classes_path,anchors_path,in
                     #TODO SHUFFLE THE INPUT IMAGES INSTEAD TO MAKE SHUFFLE WORK
                     np.random.shuffle(annotation_lines)    
                     
-                image  = images[i] #READ IMAGE (i)
-                labels = y_golden[i]
-                image_data.append(image)
-                box_data.append(labels)
+            image  = images[i] #READ IMAGE (i)
+            labels = y_golden[i]
+            image_data.append(image)
+            box_data.append(labels)
   
-                i = (i+1) % n
+            i = (i+1) % n
 
         image_data  = np.array(image_data)
         box_data    = np.array(box_data)

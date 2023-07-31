@@ -22,7 +22,8 @@ injection_points += ["batch_normalization_"+str(i) for i in range(2, 10)]
 #injection_points += ["batch_normalization_25", "batch_normalization_42", "batch_normalization_56", "batch_normalization_71"]
 
 #Build a YOLO model with CLASSES and RANGER Integrated [TODO pass here the list of injection points]
-model, CLASSES, RANGER, vanilla_body = build_yolo_classes(classes_path,anchors_path,input_shape,injection_points,classes_enable=False)
+WEIGHT_FILE_PATH = './../../keras-yolo3/yolo_boats_final.h5'
+model, CLASSES, RANGER, vanilla_body = build_yolo_classes(WEIGHT_FILE_PATH, classes_path,anchors_path,input_shape,injection_points,classes_enable=False)
 #vanilla_body.summary()
 
 golden_gen_valid,valid_size = get_golden_generator(vanilla_body,'./../../keras-yolo3/valid/',1,classes_path,anchors_path,input_shape,random=True)

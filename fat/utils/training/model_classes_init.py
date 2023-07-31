@@ -87,4 +87,4 @@ def build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,in
     else:
          model.compile(optimizer=Adam(lr=1e-2), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
  
-    return model, CLASSES, RANGER, vanilla_body,model_body
+    return model, CLASSES, RANGER, vanilla_body

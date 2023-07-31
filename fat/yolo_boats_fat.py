@@ -6,11 +6,13 @@ from keras.optimizers import Adam
 from keras.callbacks import TensorBoard, ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
 import sys
 
+from utils.training.gen_golden_annotations import get_golden_generator
+
 sys.path.append("./../../keras-yolo3/")
 
 from yolo import YOLO, detect_video, compute_iou, compute_F1_score
 from yolo3.model import preprocess_true_boxes, yolo_body, tiny_yolo_body, yolo_loss, yolo_eval
-from yolo3.utils import get_random_data
+from yolo3.utils import get_random_data, letterbox_image
 
 from train1 import *
 
@@ -80,10 +82,10 @@ def _main():
     train_gen = data_generator_wrapper('./../../keras-yolo3/train/',train_lines, 32, input_shape, anchors, num_classes, random = False)
     
     
-    '''
+    
     #RANGE TUNE THE YOLO MODEL
     print("=============FINE TUNING=============")
-    for _ in range(12):
+    for _ in range(1):
         dataset = next(train_gen)
         data   = dataset[0][0]
         image_data = data
@@ -92,33 +94,50 @@ def _main():
     
     '''
     
-    '''
     #CREATION ANNOTATIONS FROM GOLDEN MODEL PREDICTIONS
     train_gen = data_generator_wrapper('./../../keras-yolo3/train/',train_lines, 1, input_shape, anchors, num_classes, random = False)
     valid_gen = data_generator_wrapper('./../../keras-yolo3/valid/',valid_lines, 1, input_shape, anchors, num_classes, random = False)
 
+    from PIL import Image
     
     golden_train_lines = []
     #Create Golden Annotations for Training
     for i in range(371):
         name_file = train_lines[i].split()[0]
         dataset = next(train_gen)
-        data   = dataset[0][0]
-        image_data = data
+        image  = dataset[0][0][0]
+        img = np.uint8(image*255)
+        image = Image.fromarray(img)
+        new_image_size = (image.width - (image.width % 32),
+                                image.height - (image.height % 32))
+        boxed_image = letterbox_image(image, new_image_size)
+        image_data = np.array(boxed_image, dtype='float32')
+        #print(image_data.shape)
+        image_data /= 255.
+        image_data = np.expand_dims(image_data, 0)  # Add batch dimension.
+
         model_output = model_body.predict(image_data)
         #annotations = (boxes, scores, classes)
         annotations = yolo_eval(model_output, anchors, num_classes, input_shape, score_threshold = 0.7, iou_threshold = 0.5)
         
+        out_boxes, out_scores, out_classes = annotations
+
         assert annotations[0].shape[1] == 4
         assert len(annotations[2].shape) >= 1
 
+        y_golden = np.column_stack((out_boxes,out_classes))
+        y_golden[:, [0, 1]] = y_golden[:, [1, 0]]
+        y_golden[:, [2, 3]] = y_golden[:, [3, 2]]
+        print(f'Golden labels {y_golden}')
+
         resultString = name_file
-        for i, a in enumerate(annotations[0]): 
-            resultString += " "+','.join(map(str, a.numpy().astype(int)))
-            resultString += ","+str(annotations[2][i].numpy())
+        for a in y_golden: 
+            resultString += " "+','.join(map(str, a.astype(int)))
         print(resultString)
         golden_train_lines.append(resultString)
-    
+    '''
+
+    '''
     #Create Golden annotation for Validation
     golden_valid_lines = []
 
@@ -149,8 +168,10 @@ def _main():
     
     '''
 
+
+
     model_loss = Lambda(yolo_loss, output_shape=(1,), name='yolo_loss',
-        arguments={'anchors': anchors, 'num_classes': num_classes, 'ignore_thresh': 0.7})(
+        arguments={'anchors': anchors, 'num_classes': num_classes, 'ignore_thresh': 0.5})(
         [*model_body.output, *y_true])
     
     #model = RANGER.get_model()
@@ -169,8 +190,12 @@ def _main():
     train_gen = data_generator_wrapper('./../../keras-yolo3/train/',golden_train_lines, batch_size, input_shape, anchors, num_classes, random = False)
     valid_gen = data_generator_wrapper('./../../keras-yolo3/valid/',golden_valid_lines, batch_size, input_shape, anchors, num_classes, random = False)
     '''
-    train_gen = data_generator_wrapper('./../../keras-yolo3/train/',train_lines, batch_size, input_shape, anchors, num_classes, random = True)
-    valid_gen = data_generator_wrapper('./../../keras-yolo3/valid/',valid_lines, batch_size, input_shape, anchors, num_classes, random = True)
+
+    train_gen, size_train = get_golden_generator(model_body, './../../keras-yolo3/train/', batch_size, classes_path, anchors_path, input_shape, random = False)
+    #train_gen = data_generator_wrapper('./../../keras-yolo3/train/',train_lines, batch_size, input_shape, anchors, num_classes, random = True)
+    valid_gen, size_valid = get_golden_generator(model_body, './../../keras-yolo3/valid/', batch_size, classes_path, anchors_path, input_shape, random = False)
+
+    #valid_gen = data_generator_wrapper('./../../keras-yolo3/valid/',valid_lines, batch_size, input_shape, anchors, num_classes, random = True)
     
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3, verbose=1)
 
@@ -185,7 +210,7 @@ def _main():
         epochs=10, 
         callbacks = [reduce_lr])
 
-
+    
 
 
 if __name__ == '__main__':
