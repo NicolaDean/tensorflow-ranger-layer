@@ -26,7 +26,8 @@ class ClassesLayerPolicy(keras.callbacks.Callback):
 
         #IF WE CHOSED TO UNIFORMLY ASSIGN INJECTION POINTS USE THE EXTRACTION STACK
         if self.uniform_extraction:
-            self.previous_injection = random.shuffle(self.current_stack)
+            #self.previous_injection = random.shuffle(self.current_stack)
+            random.shuffle(self.current_stack)
             selected_injection = self.current_stack.pop()
             self.previous_injection = selected_injection
 

@@ -63,14 +63,14 @@ def build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,in
         RANGER,CLASSES = add_ranger_classes_to_model(model_body,injection_points,NUM_INJECTIONS=30)
         yolo_ranger = RANGER.get_model()
         #yolo_ranger.summary()
-        model = yolo_ranger
+        yolo_ranger = yolo_ranger
         
-        CLASSES.set_model(model)
+        CLASSES.set_model(yolo_ranger)
         CLASSES.disable_all()
     else:
         CLASSES = None
         RANGER  = None
-        model = model_body
+        yolo_ranger = model_body
     #model.summary()
 
     model_loss = Lambda(yolo_loss, 
@@ -78,13 +78,13 @@ def build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,in
                         name='yolo_loss',
                         arguments={'anchors': anchors, 'num_classes': num_classes, 'ignore_thresh': 0.5}
                         )\
-                        ([*model.output, *y_true])
+                        ([*yolo_ranger.output, *y_true])
     
-    model = Model([model.input, *y_true], model_loss)
+    model = Model([yolo_ranger.input, *y_true], model_loss)
 
     if not freeze_body:
         model.compile(optimizer=Adam(lr=1e-4), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
     else:
          model.compile(optimizer=Adam(lr=1e-3), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
  
-    return model, CLASSES, RANGER, vanilla_body
+    return model, CLASSES, RANGER, vanilla_body, yolo_ranger

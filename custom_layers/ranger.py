@@ -28,9 +28,9 @@ class RangerGranularity(IntEnum):
 class Ranger(keras.layers.Layer):
     def __init__(self, name):
         super(Ranger, self).__init__(name = name)
-        self.mode        = tf.Variable(int(RangerModes.Training),trainable=False)
-        self.policy      = tf.Variable(int(RangerPolicies.Clipper),trainable=False)#RangerPolicies.Clipper
-        self.granularity = tf.Variable(int(RangerGranularity.Layer),trainable=False)#RangerGranularity.Layer
+        self.mode        = tf.Variable(int(RangerModes.Training),trainable=False   ,name="mode")
+        self.policy      = tf.Variable(int(RangerPolicies.Clipper),trainable=False ,name="policy")#RangerPolicies.Clipper
+        self.granularity = tf.Variable(int(RangerGranularity.Layer),trainable=False,name="granularity")#RangerGranularity.Layer
     
     '''
     Set the Mode of the ranger layer among the one described in RangerModes class

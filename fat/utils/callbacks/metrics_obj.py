@@ -38,7 +38,7 @@ class Obj_metrics_callback(keras.callbacks.Callback):
         
         print("\n")
         print("-----------------------")
-        print("-----F1 SCOREEE--------")
+        print("-----F1 SCORE--------")
         print("-----------------------")
 
         TP,FP,FN,F1 = 0,0,0,0
