@@ -22,23 +22,23 @@ sys.path.append("./")
 
 
 def _main():
-    annotation_path_train = './../../keras-yolo3/train/_annotations.txt'
+    annotation_path_train  = './../../keras-yolo3/train/_annotations.txt'
     annotation_path_valid  = './../../keras-yolo3/valid/_annotations.txt' 
     classes_path = './../../keras-yolo3/train/_classes.txt'         
     anchors_path = './../../keras-yolo3/model_data/yolo_anchors.txt'
-    class_names = get_classes(classes_path)
+    class_names  = get_classes(classes_path)
     print("-------------------CLASS NAMES-------------------")
     print(class_names)
     print("-------------------CLASS NAMES-------------------")
     num_classes = len(class_names)
-    anchors = get_anchors(anchors_path)
+    anchors     = get_anchors(anchors_path)
 
     input_shape = (416,416) # multiple of 32, hw
 
     '''create the training model'''
     K.clear_session() # get a new session
     image_input = Input(shape=(None, None, 3))
-    h, w = input_shape
+    h, w        = input_shape
     num_anchors = len(anchors)
 
     y_true = [Input(shape=(h//{0:32, 1:16, 2:8}[l], w//{0:32, 1:16, 2:8}[l], \
@@ -61,7 +61,7 @@ def _main():
     
     model.summary()
 
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3, verbose=1)
+    reduce_lr      = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3, verbose=1)
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=1)
     
     with open(annotation_path_train) as f:
@@ -85,13 +85,13 @@ def _main():
     golden_train_lines = []
     #Create Golden Annotations for Training
     for i in range(371):
-        name_file = train_lines[i].split()[0]
-        dataset = next(train_gen)
-        data   = dataset[0][0]
-        image_data = data
+        name_file    = train_lines[i].split()[0]
+        dataset      = next(train_gen)
+        data         = dataset[0][0]
+        image_data   = data
         model_output = model.predict(image_data)
         #annotations = (boxes, scores, classes)
-        annotations = yolo_eval(model_output, anchors, num_classes, input_shape, score_threshold = 0.5, iou_threshold = 0.5)
+        annotations  = yolo_eval(model_output, anchors, num_classes, input_shape, score_threshold = 0.5, iou_threshold = 0.5)
         
         assert annotations[0].shape[1] == 4
         assert len(annotations[2].shape) >= 1
