@@ -30,7 +30,6 @@ model_dir = root
 shutil.rmtree(log_dir)
 # create folders
 os.mkdir(log_dir)
-os.mkdir(model_dir)
 
 #Declare list of injection layers 
 '''
@@ -41,14 +40,15 @@ injection_points += ["conv2d_25","conv2d_42","conv2d_56","conv2d_71"]
 injection_points += ["batch_normalization_25", "batch_normalization_42", "batch_normalization_56", "batch_normalization_71"]
 '''
 
-injection_points = ["conv2d_42"]
+injection_points = []
 
 #Build a YOLO model with CLASSES and RANGER Integrated [TODO pass here the list of injection points]
-model, CLASSES, RANGER, vanilla_body,model_body = build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,injection_points,classes_enable=True)
+model, CLASSES, RANGER, vanilla_body,model_body = build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,injection_points,classes_enable=False)
 #vanilla_body.summary()
 
-golden_gen_train,train_size  = get_vanilla_generator('./../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True)
-golden_gen_valid,valid_size  = get_vanilla_generator('./../../keras-yolo3/valid/',batch_size,classes_path,anchors_path,input_shape,random=True)
+
+golden_gen_train,train_size  = get_vanilla_generator('./../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True, keep_label=False)
+golden_gen_valid,valid_size  = get_vanilla_generator('./../../keras-yolo3/valid/',batch_size,classes_path,anchors_path,input_shape,random=True, keep_label= False)
 
 #ranger_domain_tuning(RANGER,golden_gen_train,int(train_size/batch_size))
 
@@ -62,10 +62,11 @@ checkpoint = ModelCheckpoint(log_dir + 'ep{epoch:03d}-loss{loss:.3f}-val_loss{va
 
 callbacks_list = [reduce_lr,f1_score,checkpoint]
 
+
 #Start training process
 print('Train on {} samples, val on {} samples, with batch size {}.'.format(train_size, valid_size, batch_size))
 model.fit(golden_gen_train,
-        steps_per_epoch=max(1, 1),
+        steps_per_epoch=max(1, train_size//batch_size),
         validation_data=golden_gen_valid,
         validation_steps=max(1, valid_size//batch_size),
         epochs=EPOCHS,

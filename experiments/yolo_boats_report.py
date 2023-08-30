@@ -124,7 +124,7 @@ def _main():
     #report = pd.DataFrame(columns = Error_ID_report.__annotations__.keys())
     #report.to_csv("../reports/yolo_boats_test_NOrandom.csv")
     report = []
-    OUTPUT_NAME = "../reports/yolo_boats_post_FAT_batch_v1.csv"
+    OUTPUT_NAME = "../reports/yolo_boats_remake.csv"
     NUM_ITERATATION_PER_SAMPLE = 50
     from PIL import Image
 
