@@ -15,11 +15,13 @@ Activate Classes injection within a certain probability/frequency
 def layer_activation(self):
     active = tf.random.uniform([]) < self.extraction_frequency
     if active:
+            #print("Active")
             #Disable previously selected injection point:
             layer = CLASSES_HELPER.get_layer(self.model,self.layer_name,verbose=False)
             layer.set_mode(ErrorSimulatorMode.enabled)  #Enable the Selected Injection point
     else:
             #Disable previously selected injection point:
+            #print("NOT active")
             layer = CLASSES_HELPER.get_layer(self.model,self.layer_name,verbose=False)
             layer.set_mode(ErrorSimulatorMode.disabled)  #Enable the Selected Injection point
 
@@ -31,7 +33,7 @@ class ClassesSingleLayerInjection(keras.callbacks.Callback):
         self.CLASSES              = CLASSES
         self.extraction_frequency = extraction_frequency
         self.use_batch            = use_batch
-        self.layer_name           = layer_name
+        self.layer_name           = self.injection_points[0]
 
     def on_train_batch_begin(self, epoch, logs=None):
         if self.use_batch:
