@@ -160,7 +160,8 @@ def generate_report(check_points_path,selected_layer,epoch=5):
                                       ("Precision", float), ("Recall", float), ("F1_score", float),
                                       ("True_positives", float), ("False_positives", float), ("False_negatives", float), ("Error", str)])
     
-    F1_score_report = make_dataclass("F1_score_report",[("Layer_name",str),("Epoch",int),("Num_Misclassification",int),("V_F1_score",float),("I_F1_score",float),("V_accuracy",float),("I_accuracy",float),("V_precision",float),("I_precision",float),("V_recall",float),("I_recall",float)])
+    F1_score_report = make_dataclass("F1_score_report",[("Layer_name",str),("Epoch",int),("Num_wrong_box_shape",int),("Num_wrong_box",int),("TOT_Num_Misclassification",int),("Robustness",float),("V_F1_score",float),("I_F1_score",float),("V_accuracy",float),("I_accuracy",float),("V_precision",float),("I_precision",float),("V_recall",float),("I_recall",float)])
+    
     #report = pd.DataFrame(columns = Error_ID_report.__annotations__.keys())
     #report.to_csv("../reports/yolo_boats_test_NOrandom.csv")
     report = []
@@ -174,7 +175,13 @@ def generate_report(check_points_path,selected_layer,epoch=5):
         print("-------------------------------")
         print(f'Injection on layer {layer_name}')
         print("-------------------------------")
-        num_misclassification = 0
+        num_misclassification_box_shape = 0
+        num_misclassification_wrong_box = 0
+        num_misclassification           = 0
+        num_of_injection_comleted       = 0
+        robustness                      = 0
+
+
         V_TP,V_FP,V_FN = 0,0,0
         I_TP,I_FP,I_FN = 0,0,0
 
@@ -246,11 +253,12 @@ def generate_report(check_points_path,selected_layer,epoch=5):
                 
                 #-----------CHECK IF THIS INFERENCE WAS MISCLASSIFIED---------
                 if len(v_out_boxes.shape) != len(out_boxes.shape):
-                    num_misclassification += 1
+                    num_misclassification_box_shape += 1
                 elif fp != 0 or fn != 0:
-                    num_misclassification += 1
+                    num_misclassification_wrong_box += 1
                 
-                progress_bar.set_postfix({'Misc': num_misclassification})
+                num_misclassification = num_misclassification_box_shape + num_misclassification_wrong_box
+
                 #-------------------------------------------------------------
                 report += [Error_ID_report("valid", layer_name, sample_id, curr_error_id[0], curr_error_id[1], 
                                            iou_curr, v_out_boxes.shape[0], out_boxes.shape[0], precision, recall, f1_score, tp, fp, fn, err)]
@@ -276,6 +284,11 @@ def generate_report(check_points_path,selected_layer,epoch=5):
                 V_FP += fp
                 V_FN += fn
 
+                num_of_injection_comleted += 1
+
+                robustness = 1 - (float(num_misclassification) / float(num_of_injection_comleted))
+                progress_bar.set_postfix({'Robustness': robustness})
+
         #Stack result of this layer on the report
         report = pd.DataFrame(report)
         report.to_csv(OUTPUT_NAME, mode = 'a', header = False)
@@ -288,9 +301,9 @@ def generate_report(check_points_path,selected_layer,epoch=5):
         #Compute Injection F1 for this layer.
         I_precision,I_recall,I_f1_score,I_accuracy_score = recompute_f1(I_TP,I_FP,I_FN)
         print("Injection: Precison: {}, Recall: {}, F1: {}, accuracy: {}".format( I_precision,I_recall,I_f1_score,I_accuracy_score))
-       
 
-        f1_score_report = [F1_score_report(layer_name,epoch,num_misclassification,V_f1_score,I_f1_score,V_accuracy_score,I_accuracy_score,V_precision,I_precision,V_recall,I_recall)]
+ 
+        f1_score_report = [F1_score_report(layer_name,epoch,num_misclassification_box_shape,num_misclassification_wrong_box,robustness,V_f1_score,I_f1_score,V_accuracy_score,I_accuracy_score,V_precision,I_precision,V_recall,I_recall)]
         f1_score_report = pd.DataFrame(f1_score_report)
         f1_score_report.to_csv(OUTPUT_NAME_F1, mode = 'a', header = False)
 
