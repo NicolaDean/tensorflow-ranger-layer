@@ -3,7 +3,7 @@ from .training.gen_golden_annotations import *
 from .training.model_classes_init import *
 from .training.ranger_helper import *
 
-from .callbacks.layer_selection_policy import ClassesLayerPolicy
+from .callbacks.random_injection import ClassesSingleLayerInjection
 from .callbacks.metrics_obj import Obj_metrics_callback
 
 import os
@@ -28,7 +28,7 @@ def init_path(EXPERIMENT_NAME=EXPERIMENT_NAME):
     model_dir = root
 
     # remove old account directory
-    shutil.rmtree(log_dir)
+    shutil.rmtree(log_dir,ignore_errors=True)
     # create folders
     os.mkdir(log_dir)
 
@@ -46,27 +46,35 @@ injection_points += ["batch_normalization_25", "batch_normalization_42", "batch_
 injection_points = []
 
 
-def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGHT_NAME=FINAL_WEIGHT_NAME):
+def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGHT_NAME=FINAL_WEIGHT_NAME,injection_points=injection_points,GOLDEN_LABEL = False, injection_frequency = 1.0):
+
     root, log_dir, model_dir = init_path(EXPERIMENT_NAME)
 
     #Build a YOLO model with CLASSES and RANGER Integrated [TODO pass here the list of injection points]
     model, CLASSES, RANGER, vanilla_body,model_body = build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,injection_points,classes_enable=True)
-
+    
     #Get Dataset Generator
-    golden_gen_train,train_size  = get_vanilla_generator('./../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True, keep_label=False)
-    golden_gen_valid,valid_size  = get_vanilla_generator('./../../keras-yolo3/valid/',batch_size,classes_path,anchors_path,input_shape,random=True, keep_label= False)
+    if GOLDEN_LABEL:
+        #Golden Labels
+        golden_gen_train,train_size  = get_golden_generator(vanilla_body,'./../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True)
+        golden_gen_valid,valid_size  = get_golden_generator(vanilla_body,'./../../keras-yolo3/valid/',batch_size,classes_path,anchors_path,input_shape,random=True)
+    else:
+        #Classic Dataset Label
+        golden_gen_train,train_size  = get_vanilla_generator('./../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True, keep_label=False)
+        golden_gen_valid,valid_size  = get_vanilla_generator('./../../keras-yolo3/valid/',batch_size,classes_path,anchors_path,input_shape,random=True, keep_label= False)
 
-    #ranger_domain_tuning(RANGER,golden_gen_train,int(train_size/batch_size))
+    #Tune ranger layers
+    ranger_domain_tuning(RANGER,golden_gen_train,int(train_size/batch_size))
 
     #Declare injection point selection callback
-    #injection_layer_callback  = ClassesLayerPolicy(CLASSES,uniform_extraction=True)
+    injection_layer_callback  = ClassesSingleLayerInjection(CLASSES,injection_points[0],extraction_frequency=injection_frequency,use_batch=True)
     reduce_lr                 = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3, verbose=1)
     f1_score                  = Obj_metrics_callback(model_body,'./../../keras-yolo3/valid/',classes_path,anchors_path,input_shape)
 
-    checkpoint = ModelCheckpoint(log_dir + 'ep{epoch:03d}.h5',
-            monitor='val_loss', save_weights_only=True, save_best_only=True, period=3)
+    checkpoint = ModelCheckpoint(log_dir +"/"+ EXPERIMENT_NAME + '-ep{epoch:03d}.h5',
+            monitor='val_loss', save_weights_only=True, save_best_only=False, period=5)
 
-    callbacks_list = [reduce_lr,f1_score,checkpoint]
+    callbacks_list = [reduce_lr,f1_score,injection_layer_callback,checkpoint]
 
 
     #Start training process

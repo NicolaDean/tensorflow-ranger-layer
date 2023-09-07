@@ -16,6 +16,7 @@ class ClassesLayerPolicy(keras.callbacks.Callback):
         self.CLASSES            = CLASSES
         self.uniform_extraction = uniform_extraction
         self.current_stack      = copy.deepcopy(self.injection_points)
+        #self.current_stack      += ['None']
         self.previous_injection = self.injection_points[0]
 
     def on_train_batch_begin(self, epoch, logs=None):
@@ -33,7 +34,8 @@ class ClassesLayerPolicy(keras.callbacks.Callback):
 
             if not self.current_stack:
                 self.current_stack = copy.deepcopy(self.injection_points)
-                print("Refill Stack of injection points")
+                #self.current_stack += ['None']
+                #print("Refill Stack of injection points")
         #IF WE CHOSED TO PICK AT RANDOM SIMPLY EXTRACT THE INDEX
         else:
             #Select a random Injection point from the list
@@ -42,9 +44,12 @@ class ClassesLayerPolicy(keras.callbacks.Callback):
             selected_injection = self.injection_points[selected_injection]
             self.previous_injection = selected_injection
 
-        #Enable the selected injection point:
-        layer = CLASSES_HELPER.get_layer(self.model,selected_injection,verbose=False)
-        layer.set_mode(ErrorSimulatorMode.enabled)  #Enable the Selected Injection point
+        if not selected_injection == 'None':
+            #Enable the selected injection point:
+            layer = CLASSES_HELPER.get_layer(self.model,selected_injection,verbose=False)
+            layer.set_mode(ErrorSimulatorMode.enabled)  #Enable the Selected Injection point
+        else:
+            print("SKIP INJECTION")
 
         #Print the Name of the activated Layer
         #print("Injection point [ {} ] Activated for epoch: {};".format(selected_injection, epoch))

@@ -92,7 +92,7 @@ def generate_golden_annotations(model,folder_path,annotation_lines, batch_size, 
         y_golden = np.column_stack((out_boxes,out_classes))
         y_golden[:, [0, 1]] = y_golden[:, [1, 0]]
         y_golden[:, [2, 3]] = y_golden[:, [3, 2]]
-        print(f'Golden labels {y_golden}')
+        #print(f'Golden labels {y_golden}')
         #print(y_golden)
         max_boxes = 20
         # correct boxes padding
