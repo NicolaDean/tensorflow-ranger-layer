@@ -11,7 +11,7 @@ datasets/train_steering_wheel
 saved_models
 # C extensions
 *.so
-
+*.zip
 *.h5
 
 # Distribution / packaging

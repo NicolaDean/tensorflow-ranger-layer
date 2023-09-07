@@ -57,8 +57,11 @@ def _main():
     test_gen  = data_generator_wrapper('./../../keras-yolo3/test/',test_lines, 1, input_shape, anchors, num_classes, random = False)
     valid_gen = data_generator_wrapper('./../../keras-yolo3/valid/',valid_lines, 1, input_shape, anchors, num_classes, random = False)
 
+    weights = './../../keras-yolo3/yolo_boats_final.h5'
+    #weights = './SINGLE_LAYER_batch_normalization_5-ep010-loss17.639-val_loss25.899.h5'
+
     class args:
-        def __init__ (self, model_path = './../../keras-yolo3/uniform_batch_v2.h5',
+        def __init__ (self, model_path = weights,
                             anchors_path = './../../keras-yolo3/model_data/yolo_anchors.txt',
                             classes_path =  './../../keras-yolo3/train/_classes.txt',
                             score = 0.3,
@@ -80,16 +83,18 @@ def _main():
     yolo_model = yolo.yolo_model
 
     yolo_model.summary()
-
+    '''
     layer_names = ["conv2d", "batch_normalization"] 
     layer_names += ["conv2d_"+str(i) for i in range(1, 10)]
     layer_names += ["batch_normalization_"+str(i) for i in range(2, 10)]
     layer_names += ["conv2d_25","conv2d_42","conv2d_56","conv2d_71"]
     layer_names += ["batch_normalization_25", "batch_normalization_42", "batch_normalization_56", "batch_normalization_71"]
-    
+    '''
+
+    layer_names = ["batch_normalization_5"]
     print("Layers on which we inject faults: ", str(layer_names))
     #if type(a_list) == list:
-    RANGER,CLASSES = add_ranger_classes_to_model(yolo.yolo_model,layer_names,NUM_INJECTIONS=30)
+    RANGER,CLASSES = add_ranger_classes_to_model(yolo.yolo_model,layer_names,NUM_INJECTIONS=60)
     yolo_ranger = RANGER.get_model()
     yolo_ranger.summary()
     CLASSES.set_model(yolo_ranger)
@@ -124,7 +129,7 @@ def _main():
     #report = pd.DataFrame(columns = Error_ID_report.__annotations__.keys())
     #report.to_csv("../reports/yolo_boats_test_NOrandom.csv")
     report = []
-    OUTPUT_NAME = "../reports/yolo_boats_remake.csv"
+    OUTPUT_NAME = "../reports/yolo_boats_POST_FAT_batch_5.csv"
     NUM_ITERATATION_PER_SAMPLE = 50
     from PIL import Image
 

@@ -18,32 +18,10 @@ from yolo import compute_F1_score, compute_iou
 directory = str(pathlib.Path(__file__).parent.parent.absolute()) +  "/../training/gen"
 sys.path.append(directory)
 
-class Obj_metrics_callback(keras.callbacks.Callback):
-    
-    def __init__(self,model_body,valid_path,classes_path,anchors_path,input_shape,frequency=5):
-        super().__init__()
-        self.valid_gen,self.valid_size = get_vanilla_generator(valid_path,1,classes_path,anchors_path,input_shape,random=True,keep_label=True)
-
-        class_names     = get_classes(classes_path)
-        self.anchors     = get_anchors(anchors_path)
-        self.num_classes = len(class_names)
-        self.input_shape = input_shape
-        self.model_body  = model_body
-
-        self.frequency = frequency
-
-    def on_epoch_end(self, epoch, logs=None):
-        if (epoch % self.frequency):
-            return
-        
-        print("\n")
-        print("-----------------------")
-        print("-----F1 SCORE--------")
-        print("-----------------------")
-
+def compute_validation_f1(model_body,valid_gen, valid_size,anchors,num_classes, input_shape):
         TP,FP,FN,F1 = 0,0,0,0
-        for idx in tqdm(range(0,self.valid_size)):
-            data = next(self.valid_gen)
+        for idx in tqdm(range(0,valid_size)):
+            data = next(valid_gen)
             image_data = data[0][0]
             label      = data[2][0]
             label      = label[~np.all(label == 0, axis=1)]
@@ -60,9 +38,9 @@ class Obj_metrics_callback(keras.callbacks.Callback):
             y_true_boxes  = y_true_boxes.tolist()
             y_true_classes= y_true_classes.tolist()
 
-            yolo_out = self.model_body.predict(image_data,verbose=False)
+            yolo_out = model_body.predict(image_data,verbose=False)
             
-            boxes, scores, classes = yolo_eval(yolo_out, self.anchors,self.num_classes, self.input_shape,score_threshold=0.4, iou_threshold=0.5)
+            boxes, scores, classes = yolo_eval(yolo_out, anchors,num_classes, input_shape,score_threshold=0.4, iou_threshold=0.5)
             '''
             print("TRUE")
             print(y_true_boxes)
@@ -98,7 +76,33 @@ class Obj_metrics_callback(keras.callbacks.Callback):
         else:
             Accuracy = None
 
-        F1 = F1 / self.valid_size
+        F1 = F1 / valid_size
+        
+        return precision,recall,f1_score,Accuracy
+
+class Obj_metrics_callback(keras.callbacks.Callback):
+    
+    def __init__(self,model_body,valid_path,classes_path,anchors_path,input_shape,frequency=5):
+        super().__init__()
+        self.valid_gen,self.valid_size = get_vanilla_generator(valid_path,1,classes_path,anchors_path,input_shape,random=True,keep_label=True)
+
+        class_names     = get_classes(classes_path)
+        self.anchors     = get_anchors(anchors_path)
+        self.num_classes = len(class_names)
+        self.input_shape = input_shape
+        self.model_body  = model_body
+
+        self.frequency = frequency
+
+    def on_epoch_end(self, epoch, logs=None):
+        if (epoch % self.frequency):
+            return
+        
+        print("\n")
+        print("-----------------------")
+        print("-----F1 SCORE--------")
+        print("-----------------------")
+        precision,recall,f1_score,Accuracy = compute_validation_f1(self.model_body,self.valid_gen,self.valid_size,self.anchors,self.num_classes, self.input_shape)
         keys = list(logs.keys())
         print("End epoch {} of training; Precison: {}, Recall: {}, F1: {}, accuracy: {}".format(epoch, precision,recall,f1_score,Accuracy))
     

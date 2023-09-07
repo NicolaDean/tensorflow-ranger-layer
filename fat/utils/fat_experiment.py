@@ -63,7 +63,7 @@ def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGH
     reduce_lr                 = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3, verbose=1)
     f1_score                  = Obj_metrics_callback(model_body,'./../../keras-yolo3/valid/',classes_path,anchors_path,input_shape)
 
-    checkpoint = ModelCheckpoint(log_dir + 'ep{epoch:03d}-loss{loss:.3f}-val_loss{val_loss:.3f}.h5',
+    checkpoint = ModelCheckpoint(log_dir + 'ep{epoch:03d}.h5',
             monitor='val_loss', save_weights_only=True, save_best_only=True, period=3)
 
     callbacks_list = [reduce_lr,f1_score,checkpoint]
