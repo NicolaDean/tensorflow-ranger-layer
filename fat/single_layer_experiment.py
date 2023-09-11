@@ -21,33 +21,60 @@ injection_points += ["conv2d_25","conv2d_42","conv2d_56","conv2d_71"]
 injection_points += ["batch_normalization_25", "batch_normalization_42", "batch_normalization_56", "batch_normalization_71"]
 
 
+if __name__ == '__main__':
 
-LAYER = "batch_normalization_5"
-injection_points  = [LAYER]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--experiment_name" , default="Generic_experiment", action = "store")
+    parser.add_argument("--golden_label"    , default=False, action='store_true')
+    parser.add_argument("--mixed_label"     , default=False, action='store_true')
+    parser.add_argument("--frequency"       , default=0.5  , action = "store")
+    parser.add_argument("--epochs"          , default=36   , action = "store")
+    parser.add_argument("--layer"           , default="conv2d_5"   , action = "store")
 
+    args            = parser.parse_args()
+    prefix          = args.golden_label
+    epoch           = str(args.epochs)
+    experiment_name = str(args.experiment_name)
 
-for freq in [1.0,0.75,0.5,0.25]:
-    for layer in injection_points:
-        EXPERIMENT_NAME   = f"FREQUENCY_{freq}__SINGLE_LAYER_" + layer
-        FINAL_WEIGHT_NAME = f"single_layer_{layer}_final.h5"
-        EPOCHS            = 36
-        INJECTION_FREQUENCY = freq
-        GOLDEN_LABEL      = False
+    LAYER               = str (args.layer)
+    EXPERIMENT_NAME     = f"{experiment_name}_{args.frequency}_SINGLE_LAYER_" + LAYER
+    FINAL_WEIGHT_NAME   = f"single_layer_{LAYER}_final.h5"
+    EPOCHS              = int(args.epochs)
+    INJECTION_FREQUENCY = float(args.frequency)
+    GOLDEN_LABEL        = bool(args.golden_label)
+    MIXED_LABEL         = bool(args.mixed_label)
 
-        print(f"Train for layer: {layer}")
-        run_fat_experiment(EPOCHS,EXPERIMENT_NAME,FINAL_WEIGHT_NAME,injection_points = injection_points,GOLDEN_LABEL=GOLDEN_LABEL,injection_frequency=INJECTION_FREQUENCY)
+    injection_points  = [LAYER]
+    print(f"Train for layer: {LAYER}")
+    run_fat_experiment(EPOCHS,EXPERIMENT_NAME,FINAL_WEIGHT_NAME,injection_points = injection_points,GOLDEN_LABEL=GOLDEN_LABEL,injection_frequency=INJECTION_FREQUENCY)
+    
+'''  
+for layer in ["conv2d_7","batch_normalization_25","batch_normalization_9"]:
+    LAYER = layer
+    injection_points  = [LAYER]
+    
+    for freq in [1.0,0.75,0.5,0.25]:
+        for layer in injection_points:
+            EXPERIMENT_NAME   = f"FREQUENCY_{freq}__SINGLE_LAYER_" + layer
+            FINAL_WEIGHT_NAME = f"single_layer_{layer}_final.h5"
+            EPOCHS            = 36
+            INJECTION_FREQUENCY = freq
+            GOLDEN_LABEL      = False
 
-for freq in [1.0,0.75,0.5,0.25]:
-    for layer in injection_points:
-        EXPERIMENT_NAME   = f"GOLDEN_FREQUENCY_{freq}__SINGLE_LAYER_" + layer
-        FINAL_WEIGHT_NAME = f"single_layer_{layer}_final.h5"
-        EPOCHS            = 36
-        INJECTION_FREQUENCY = freq
-        GOLDEN_LABEL      = True
+            print(f"Train for layer: {layer}")
+            run_fat_experiment(EPOCHS,EXPERIMENT_NAME,FINAL_WEIGHT_NAME,injection_points = injection_points,GOLDEN_LABEL=GOLDEN_LABEL,injection_frequency=INJECTION_FREQUENCY)
+    
+    for freq in [0.75,0.5,0.25]:
+        for layer in injection_points:
+            EXPERIMENT_NAME   = f"GOLDEN_FREQUENCY_{freq}__SINGLE_LAYER_" + layer
+            FINAL_WEIGHT_NAME = f"single_layer_{layer}_final.h5"
+            EPOCHS            = 36
+            INJECTION_FREQUENCY = freq
+            GOLDEN_LABEL      = True
 
-        print(f"Train for layer: {layer}")
-        run_fat_experiment(EPOCHS,EXPERIMENT_NAME,FINAL_WEIGHT_NAME,injection_points = injection_points,GOLDEN_LABEL=GOLDEN_LABEL,injection_frequency=INJECTION_FREQUENCY)
-
+            print(f"Train for layer: {layer}")
+            run_fat_experiment(EPOCHS,EXPERIMENT_NAME,FINAL_WEIGHT_NAME,injection_points = injection_points,GOLDEN_LABEL=GOLDEN_LABEL,injection_frequency=INJECTION_FREQUENCY)
+'''
 
 '''
 for layer in injection_points:
