@@ -60,10 +60,10 @@ def recompute_f1(TP,FP,FN):
         return precision,recall,f1_score,accuracy_score
 
 
-def generate_report(check_points_path,selected_layer,epoch=5):
+def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_boats_POST_FAT"):
 
-    OUTPUT_NAME = f"./reports/yolo_boats_POST_FAT_epoch_{epoch}.csv"
-    OUTPUT_NAME_F1 = f"./reports/F1_REPORT_yolo_boats_POST_FAT_epoch_{epoch}.csv"
+    OUTPUT_NAME    = f"./reports/{selected_layer[0]}/{out_prefix}_epoch_{epoch}.csv"
+    OUTPUT_NAME_F1 = f"./reports/{selected_layer[0]}/F1_REPORT_{out_prefix}_{selected_layer}.csv"
 
     NUM_ITERATATION_PER_SAMPLE = 50
 
@@ -156,11 +156,11 @@ def generate_report(check_points_path,selected_layer,epoch=5):
 
     Error_ID_report = make_dataclass("Error_ID_report", 
                                      [("Set", str), ("Layer_name", str), ("Sample_id", int), ("Cardinality", int), ("Pattern", int), 
-                                      ("IOU", float), ("Golden_num_boxes", int), ("Faulty_num_boxes", int), 
+                                      ("Golden_num_boxes", int), ("Faulty_num_boxes", int), 
                                       ("Precision", float), ("Recall", float), ("F1_score", float),
                                       ("True_positives", float), ("False_positives", float), ("False_negatives", float), ("Error", str)])
-    
-    F1_score_report = make_dataclass("F1_score_report",[("Layer_name",str),("Epoch",int),("Num_wrong_box_shape",int),("Num_wrong_box",int),("TOT_Num_Misclassification",int),("Robustness",float),("V_F1_score",float),("I_F1_score",float),("V_accuracy",float),("I_accuracy",float),("V_precision",float),("I_precision",float),("V_recall",float),("I_recall",float)])
+    #("Num_excluded",int),("Num_empty")
+    F1_score_report = make_dataclass("F1_score_report",[("Layer_name",str),("Epoch",int),("Num_wrong_box_shape",int),("Num_wrong_box_count",int),("TOT_Num_Misclassification",int),("Robustness",float),("V_F1_score",float),("I_F1_score",float),("V_accuracy",float),("I_accuracy",float),("V_precision",float),("I_precision",float),("V_recall",float),("I_recall",float),])
     
     #report = pd.DataFrame(columns = Error_ID_report.__annotations__.keys())
     #report.to_csv("../reports/yolo_boats_test_NOrandom.csv")
@@ -180,7 +180,8 @@ def generate_report(check_points_path,selected_layer,epoch=5):
         num_misclassification           = 0
         num_of_injection_comleted       = 0
         robustness                      = 0
-
+        num_excluded                    = 0
+        num_empty                       = 0
 
         V_TP,V_FP,V_FN = 0,0,0
         I_TP,I_FP,I_FN = 0,0,0
@@ -188,12 +189,26 @@ def generate_report(check_points_path,selected_layer,epoch=5):
         #for all test samples
         progress_bar = tqdm(range(len(valid_lines)))
         for sample_id in progress_bar:
+            EMPTY_BOX_FLAG = False
+
             #load data
             dataset = next(valid_gen)
             data   = dataset[0][0]
             label  = dataset[2][0]
             label  = label[~np.all(label == 0, axis=1)]
             
+            y_true          = np.hsplit(label,[4,5])
+            y_true_boxes    = y_true[0].astype('double')
+            y_true_classes  = y_true[1].astype('int')
+
+            y_true_classes = np.reshape(y_true_classes, len(y_true_classes))
+
+            y_true_boxes[:, [0, 1]] = y_true_boxes[:, [1, 0]]
+            y_true_boxes[:, [2, 3]] = y_true_boxes[:, [3, 2]]
+
+            y_true_boxes  = y_true_boxes.tolist()
+            y_true_classes= y_true_classes.tolist()
+
             img = np.uint8(data[0]*255)
             img = Image.fromarray(img)
             f1 = img
@@ -204,11 +219,16 @@ def generate_report(check_points_path,selected_layer,epoch=5):
             r_image,v_out_boxes, v_out_scores, v_out_classes = yolo.detect_image(f1,y_true=False,verbose=False)
             r_image         = np.asarray(r_image)
 
+            
             if v_out_boxes.shape[0] == 0:
+                '''
                 report += [Error_ID_report("valid", layer_name, sample_id, np.nan, np.nan, 
                                            np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan,
                                            "Golden prediction has no boxes")]
-                continue
+                '''
+                num_empty += 1
+                EMPTY_BOX_FLAG = True
+                #continue
 
             #150 faults injections are performed
             yolo.yolo_model = yolo_faulty
@@ -234,15 +254,21 @@ def generate_report(check_points_path,selected_layer,epoch=5):
                 #Exclude sample if some error occurred
                 if err != "":
                     report += [Error_ID_report("valid", layer_name, sample_id, curr_error_id[0], curr_error_id[1], 
-                                           np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, err)]
+                                            np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, err)]
+                    num_excluded += 1
                     continue
             
 
                 #Avoid crashing when IOU is not computabel due to "division by zero"
-                try:
-                    iou_curr = compute_iou(v_out_boxes,v_out_classes,out_boxes, out_scores, out_classes).numpy()[0]
-                except:
+                '''
+                if not EMPTY_BOX_FLAG:
+                    try:
+                        iou_curr = compute_iou(v_out_boxes,v_out_classes,out_boxes, out_scores, out_classes).numpy()[0]
+                    except:
+                        iou_curr = np.nan
+                else:
                     iou_curr = np.nan
+                '''
 
                 #Compute partial injection F1 score
                 precision,recall,f1_score, tp, fp, fn = compute_F1_score(v_out_boxes,v_out_classes,out_boxes, out_classes, iou_th=0.5,verbose=False)
@@ -261,23 +287,12 @@ def generate_report(check_points_path,selected_layer,epoch=5):
 
                 #-------------------------------------------------------------
                 report += [Error_ID_report("valid", layer_name, sample_id, curr_error_id[0], curr_error_id[1], 
-                                           iou_curr, v_out_boxes.shape[0], out_boxes.shape[0], precision, recall, f1_score, tp, fp, fn, err)]
+                                            v_out_boxes.shape[0], out_boxes.shape[0], precision, recall, f1_score, tp, fp, fn, err)]
                     
                 #-----------VANILLA F1 SCORE----------------------------------
 
-                y_true          = np.hsplit(label,[4,5])
-                y_true_boxes    = y_true[0].astype('double')
-                y_true_classes  = y_true[1].astype('int')
-
-                y_true_classes = np.reshape(y_true_classes, len(y_true_classes))
-
-                y_true_boxes[:, [0, 1]] = y_true_boxes[:, [1, 0]]
-                y_true_boxes[:, [2, 3]] = y_true_boxes[:, [3, 2]]
-
-                y_true_boxes  = y_true_boxes.tolist()
-                y_true_classes= y_true_classes.tolist()
-
                 #Compute partial vanilla F1 score
+                #CHECK CONTROLLARE SE L'ORDINE DI TRUE_LAB / V_BOX è IMPORTANTE AI FINI DI FP e FN
                 precision,recall,f1_score, tp, fp, fn = compute_F1_score(y_true_boxes,y_true_classes,v_out_boxes, v_out_classes, iou_th=0.5,verbose=False)
 
                 V_TP += tp
@@ -287,7 +302,7 @@ def generate_report(check_points_path,selected_layer,epoch=5):
                 num_of_injection_comleted += 1
 
                 robustness = 1 - (float(num_misclassification) / float(num_of_injection_comleted))
-                progress_bar.set_postfix({'Robustness': robustness})
+                progress_bar.set_postfix({'Robu': robustness,'num_exluded': num_excluded,'tot_inj':num_of_injection_comleted})
 
         #Stack result of this layer on the report
         report = pd.DataFrame(report)
@@ -302,28 +317,61 @@ def generate_report(check_points_path,selected_layer,epoch=5):
         I_precision,I_recall,I_f1_score,I_accuracy_score = recompute_f1(I_TP,I_FP,I_FN)
         print("Injection: Precison: {}, Recall: {}, F1: {}, accuracy: {}".format( I_precision,I_recall,I_f1_score,I_accuracy_score))
 
- 
-        f1_score_report = [F1_score_report(layer_name,epoch,num_misclassification_box_shape,num_misclassification_wrong_box,robustness,V_f1_score,I_f1_score,V_accuracy_score,I_accuracy_score,V_precision,I_precision,V_recall,I_recall)]
+        f1_score_report = [F1_score_report(layer_name,
+                                           epoch,
+                                           num_misclassification_box_shape,
+                                           num_misclassification_wrong_box,
+                                           num_misclassification,
+                                           robustness,
+                                           V_f1_score,I_f1_score,
+                                           V_accuracy_score,I_accuracy_score,
+                                           V_precision,I_precision,
+                                           V_recall,I_recall)]
+        
         f1_score_report = pd.DataFrame(f1_score_report)
         f1_score_report.to_csv(OUTPUT_NAME_F1, mode = 'a', header = False)
 
  ###################### END REPORT ##########################
 
 
-CHECKPOINT_PATH = "./results/SINGLE_LAYER_batch_normalization_5/SINGLE_LAYER_batch_normalization_5-ep010.h5"
+CHECKPOINT_PATH = "./results/FREQUENCY_0.5__SINGLE_LAYER_batch_normalization_5/FREQUENCY_0.5__SINGLE_LAYER_batch_normalization_5-ep030.h5"
 SELECTED_LAYERS = ["batch_normalization_5"]
 
 if __name__ == '__main__':
 
-    #generate_report(CHECKPOINT_PATH,SELECTED_LAYERS)
-    #exit()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--checkpoint", action = "store")
+    parser.add_argument("--epoch", action = "store")
+    parser.add_argument("--experiment_name",action = "store")
+
+    args            = parser.parse_args()
+    prefix          = args.checkpoint
+    epoch           = str(args.epoch)
+    experiment_name = str(args.experiment_name)
+
+    while len(epoch) < 3:
+        epoch = "0"+epoch
+
+    for file_name in os.listdir("results/"+prefix):
+        if "-ep"+epoch in file_name:
+            CHECKPOINT_PATH =  "./results/"+ prefix + "/" + file_name
+            break
+    
+    generate_report(CHECKPOINT_PATH,SELECTED_LAYERS,epoch=epoch,out_prefix=experiment_name)
+
+
+
+    exit()
     parser = argparse.ArgumentParser()
     parser.add_argument("--layer", action = "store")
     parser.add_argument("--epoch", action = "store")
+    parser.add_argument("--experiment_name", action = "store")
     args = parser.parse_args()
     SELECTED_LAYERS = [args.layer]
-    prefix = "SINGLE_LAYER_"+str(args.layer)
-    epoch = str(args.epoch)
+    prefix          = "SINGLE_LAYER_"+str(args.layer)
+    epoch           = str(args.epoch)
+    experiment_name = str(args.experiment_name)
+    
     while len(epoch) < 3:
         epoch = "0"+epoch
     
