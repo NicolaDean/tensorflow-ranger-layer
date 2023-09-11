@@ -347,11 +347,15 @@ if __name__ == '__main__':
     parser.add_argument("--checkpoint", action = "store")
     parser.add_argument("--epoch", action = "store")
     parser.add_argument("--experiment_name",action = "store")
+    parser.add_argument("--layer",action = "store")
 
     args            = parser.parse_args()
     prefix          = args.checkpoint
     epoch           = str(args.epoch)
     experiment_name = str(args.experiment_name)
+    layer           = str(args.layer)
+
+    SELECTED_LAYERS = [layer]
 
     while len(epoch) < 3:
         epoch = "0"+epoch
@@ -362,31 +366,3 @@ if __name__ == '__main__':
             break
     
     generate_report(CHECKPOINT_PATH,SELECTED_LAYERS,epoch=epoch,out_prefix=experiment_name)
-
-
-
-    exit()
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--layer", action = "store")
-    parser.add_argument("--epoch", action = "store")
-    parser.add_argument("--experiment_name", action = "store")
-    args = parser.parse_args()
-    SELECTED_LAYERS = [args.layer]
-    prefix          = "SINGLE_LAYER_"+str(args.layer)
-    epoch           = str(args.epoch)
-    experiment_name = str(args.experiment_name)
-    
-    while len(epoch) < 3:
-        epoch = "0"+epoch
-    
-    for file_name in os.listdir("results/"+prefix):
-        if prefix+"-ep"+epoch in file_name:
-            CHECKPOINT_PATH =  prefix + "/" + file_name
-            continue
-    if CHECKPOINT_PATH == "":
-        print("Parameters not valid, probably there is no checkpoint referred to those")
-        exit()
-
-    CHECKPOINT_PATH = "./results/"+CHECKPOINT_PATH
-
-    generate_report(CHECKPOINT_PATH,SELECTED_LAYERS,epoch=epoch)
