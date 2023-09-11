@@ -219,16 +219,16 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
             r_image,v_out_boxes, v_out_scores, v_out_classes = yolo.detect_image(f1,y_true=False,verbose=False)
             r_image         = np.asarray(r_image)
 
-            
+            '''
             if v_out_boxes.shape[0] == 0:
-                '''
+                
                 report += [Error_ID_report("valid", layer_name, sample_id, np.nan, np.nan, 
                                            np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan,
                                            "Golden prediction has no boxes")]
-                '''
+                
                 num_empty += 1
-                EMPTY_BOX_FLAG = True
                 #continue
+            '''
 
             #150 faults injections are performed
             yolo.yolo_model = yolo_faulty
@@ -337,8 +337,12 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
 CHECKPOINT_PATH = "./results/FREQUENCY_0.5__SINGLE_LAYER_batch_normalization_5/FREQUENCY_0.5__SINGLE_LAYER_batch_normalization_5-ep030.h5"
 SELECTED_LAYERS = ["batch_normalization_5"]
 
-if __name__ == '__main__':
+#CHECKPOINT_PATH = "./results/../../../keras-yolo3/yolo_boats_final.h5"
 
+if __name__ == '__main__':
+    #generate_report(CHECKPOINT_PATH,SELECTED_LAYERS,epoch=200,out_prefix="PRE_FAT")
+
+    #exit()
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", action = "store")
     parser.add_argument("--epoch", action = "store")

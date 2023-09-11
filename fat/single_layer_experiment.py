@@ -1,5 +1,8 @@
 from utils.fat_experiment import *
-
+import sys
+import argparse
+import os
+from tqdm import tqdm
 
 '''
 injection_points = ["conv2d", "batch_normalization"]
@@ -23,6 +26,30 @@ LAYER = "batch_normalization_5"
 injection_points  = [LAYER]
 
 
+for freq in [1.0,0.75,0.5,0.25]:
+    for layer in injection_points:
+        EXPERIMENT_NAME   = f"FREQUENCY_{freq}__SINGLE_LAYER_" + layer
+        FINAL_WEIGHT_NAME = f"single_layer_{layer}_final.h5"
+        EPOCHS            = 36
+        INJECTION_FREQUENCY = freq
+        GOLDEN_LABEL      = False
+
+        print(f"Train for layer: {layer}")
+        run_fat_experiment(EPOCHS,EXPERIMENT_NAME,FINAL_WEIGHT_NAME,injection_points = injection_points,GOLDEN_LABEL=GOLDEN_LABEL,injection_frequency=INJECTION_FREQUENCY)
+
+for freq in [1.0,0.75,0.5,0.25]:
+    for layer in injection_points:
+        EXPERIMENT_NAME   = f"GOLDEN_FREQUENCY_{freq}__SINGLE_LAYER_" + layer
+        FINAL_WEIGHT_NAME = f"single_layer_{layer}_final.h5"
+        EPOCHS            = 36
+        INJECTION_FREQUENCY = freq
+        GOLDEN_LABEL      = True
+
+        print(f"Train for layer: {layer}")
+        run_fat_experiment(EPOCHS,EXPERIMENT_NAME,FINAL_WEIGHT_NAME,injection_points = injection_points,GOLDEN_LABEL=GOLDEN_LABEL,injection_frequency=INJECTION_FREQUENCY)
+
+
+'''
 for layer in injection_points:
     EXPERIMENT_NAME   = "FREQUENCY_0.75__SINGLE_LAYER_" + layer
     FINAL_WEIGHT_NAME = f"single_layer_{layer}_final.h5"
@@ -32,3 +59,4 @@ for layer in injection_points:
 
     print(f"Train for layer: {layer}")
     run_fat_experiment(EPOCHS,EXPERIMENT_NAME,FINAL_WEIGHT_NAME,injection_points = injection_points,GOLDEN_LABEL=GOLDEN_LABEL,injection_frequency=INJECTION_FREQUENCY)
+'''
