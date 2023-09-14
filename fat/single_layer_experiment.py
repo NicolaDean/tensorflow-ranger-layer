@@ -27,9 +27,12 @@ if __name__ == '__main__':
     parser.add_argument("--experiment_name" , default="Generic_experiment", action = "store")
     parser.add_argument("--golden_label"    , default=False, action='store_true')
     parser.add_argument("--mixed_label"     , default=False, action='store_true')
+    parser.add_argument("--mixed_label_v2"  , default=False, action='store_true')
     parser.add_argument("--frequency"       , default=0.5  , action = "store")
     parser.add_argument("--epochs"          , default=36   , action = "store")
     parser.add_argument("--layer"           , default="conv2d_5"   , action = "store")
+    parser.add_argument("--switch_prob"     , default =0.5      , action = "store")
+    parser.add_argument("--num_epochs_switch", default =1     , action = "store")
 
     args            = parser.parse_args()
     prefix          = args.golden_label
@@ -43,10 +46,13 @@ if __name__ == '__main__':
     INJECTION_FREQUENCY = float(args.frequency)
     GOLDEN_LABEL        = bool(args.golden_label)
     MIXED_LABEL         = bool(args.mixed_label)
+    MIXED_LABEL_V2      = bool(args.mixed_label_v2)
+    SWITCH_PROB         = float(args.switch_prob)
+    NUM_EPOCHS_SWITCH   = int(args.num_epochs_switch)
 
     injection_points  = [LAYER]
     print(f"Train for layer: {LAYER}")
-    run_fat_experiment(EPOCHS,EXPERIMENT_NAME,FINAL_WEIGHT_NAME,injection_points = injection_points,GOLDEN_LABEL=GOLDEN_LABEL,injection_frequency=INJECTION_FREQUENCY)
+    run_fat_experiment(EPOCHS,EXPERIMENT_NAME,FINAL_WEIGHT_NAME,injection_points = injection_points,GOLDEN_LABEL=GOLDEN_LABEL,MIXED_LABEL=MIXED_LABEL, MIXED_LABEL_V2=MIXED_LABEL_V2, injection_frequency=INJECTION_FREQUENCY, switch_prob=SWITCH_PROB,num_epochs_switch = NUM_EPOCHS_SWITCH)
     
 '''  
 for layer in ["conv2d_7","batch_normalization_25","batch_normalization_9"]:
