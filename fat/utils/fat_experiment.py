@@ -5,6 +5,7 @@ from .training.ranger_helper import *
 
 from .callbacks.random_injection import ClassesSingleLayerInjection
 from .callbacks.metrics_obj import Obj_metrics_callback
+from .callbacks.mixed_generator_v2 import MixedGeneratorV2Obj
 
 import os
 import shutil
@@ -46,7 +47,7 @@ injection_points += ["batch_normalization_25", "batch_normalization_42", "batch_
 injection_points = []
 
 
-def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGHT_NAME=FINAL_WEIGHT_NAME,injection_points=injection_points,GOLDEN_LABEL = False, injection_frequency = 1.0):
+def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGHT_NAME=FINAL_WEIGHT_NAME,injection_points=injection_points,GOLDEN_LABEL = False, MIXED_LABEL = False, MIXED_LABEL_V2 = False, injection_frequency = 1.0, switch_prob = 0.5, num_epochs_switch = 1):
 
     root, log_dir, model_dir = init_path(EXPERIMENT_NAME)
 
@@ -75,6 +76,15 @@ def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGH
             monitor='val_loss', save_weights_only=True, save_best_only=False, period=5)
 
     callbacks_list = [reduce_lr,f1_score,injection_layer_callback,checkpoint]
+
+    if MIXED_LABEL:
+        #Mixed labels 
+        golden_gen_train, train_size = get_mixed_generator(vanilla_body, './../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True, switch_prob = switch_prob)
+        golden_gen_valid,valid_size  = get_mixed_generator(vanilla_body,'./../../keras-yolo3/valid/',batch_size,classes_path,anchors_path,input_shape,random=True, switch_prob = switch_prob)
+    elif MIXED_LABEL_V2:
+        callback_obj = MixedGeneratorV2Obj(num_epochs_switch)
+        golden_gen_train, train_size = get_mixed_v2_generator(vanilla_body, './../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True, callback_obj=callback_obj)
+        callbacks_list.append(callback_obj)
 
 
     #Start training process

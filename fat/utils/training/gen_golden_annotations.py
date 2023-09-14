@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 from PIL import Image
 
 import sys
@@ -175,3 +176,50 @@ def get_golden_generator(model,folder_path, batch_size, classes_path,anchors_pat
     
     gen =  golden_generator(model,folder_path, batch_size, classes_path,anchors_path,input_shape, random)
     return gen,len(annotation_lines)
+
+
+##### MIXED GENERATOR: switch among golden predictions and ground truth at batch level #####
+
+def mixed_generator(vanilla_generator, golden_generator, switch_prob):
+    # switch_prob sets the probability with which we draw a sample from the vanilla generator (ground truth annotation)
+    while True:
+        if tf.random.uniform([]) < switch_prob:
+            a = next(vanilla_generator)
+        else:
+            a = next(golden_generator)
+        yield a
+
+
+
+def get_mixed_generator(model, folder_path, batch_size, classes_path, anchors_path, input_shape, random, switch_prob):
+    with open(folder_path + "_annotations.txt") as f:
+        annotation_lines = f.readlines()
+    
+    vanilla_generator, train_size = get_vanilla_generator(folder_path, batch_size, classes_path, anchors_path, input_shape, random)
+    golden_generator , train_size = get_golden_generator(model,folder_path, batch_size, classes_path,anchors_path,input_shape, random)
+
+    return mixed_generator(vanilla_generator, golden_generator, switch_prob), len(annotation_lines)
+
+
+######  MIXED GENERATOR v2: switch among golden predictions and ground truth at epoch level######
+
+def mixed_v2_generator(vanilla_generator, golden_generator, callback_obj):
+    while True:
+        print("CALLBACK OBJ = ", str(callback_obj.golden))
+        if callback_obj.golden:
+            a = next(golden_generator)
+        else:
+            a = next(vanilla_generator)
+        yield a
+
+
+
+def get_mixed_v2_generator(model, folder_path, batch_size, classes_path, anchors_path, input_shape, random, callback_obj):
+
+    with open(folder_path + "_annotations.txt") as f:
+        annotation_lines = f.readlines()
+    
+    vanilla_generator = get_vanilla_generator(folder_path, batch_size, classes_path, anchors_path, input_shape, random)[0]
+    golden_generator = get_golden_generator(model,folder_path, batch_size, classes_path,anchors_path,input_shape, random)[0]
+
+    return mixed_v2_generator(vanilla_generator, golden_generator, callback_obj), len(annotation_lines)

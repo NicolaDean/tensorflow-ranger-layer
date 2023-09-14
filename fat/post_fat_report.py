@@ -349,6 +349,8 @@ if __name__ == '__main__':
     parser.add_argument("--experiment_name" , action = "store")
     parser.add_argument("--layer"           , action = "store")
     parser.add_argument("--root"            , default="./results",  action = "store")
+    parser.add_argument("--prefat",default=False,action = "store_true")
+
 
     args            = parser.parse_args()
     prefix          = args.checkpoint
@@ -356,6 +358,14 @@ if __name__ == '__main__':
     experiment_name = str(args.experiment_name)
     layer           = str(args.layer)
     root_folder     = str(args.root)
+    pre_fat         = args.prefat
+
+    if pre_fat:
+        CHECKPOINT_PATH = "./results/../../../keras-yolo3/yolo_boats_final.h5"
+        SELECTED_LAYERS = [layer]
+        generate_report(CHECKPOINT_PATH,SELECTED_LAYERS,epoch=epoch,out_prefix=experiment_name)
+        exit()
+    
     
     SELECTED_LAYERS = [layer]
 
