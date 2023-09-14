@@ -60,7 +60,7 @@ def recompute_f1(TP,FP,FN):
         return precision,recall,f1_score,accuracy_score
 
 
-def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_boats_POST_FAT"):
+def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_boats_POST_FAT",root_folder="./result"):
 
     OUTPUT_NAME    = f"./reports/{selected_layer[0]}/{out_prefix}_epoch_{epoch}.csv"
     OUTPUT_NAME_F1 = f"./reports/{selected_layer[0]}/F1_REPORT_{out_prefix}_{selected_layer}.csv"
@@ -344,25 +344,27 @@ if __name__ == '__main__':
 
     #exit()
     parser = argparse.ArgumentParser()
-    parser.add_argument("--checkpoint", action = "store")
-    parser.add_argument("--epoch", action = "store")
-    parser.add_argument("--experiment_name",action = "store")
-    parser.add_argument("--layer",action = "store")
+    parser.add_argument("--checkpoint"      , action = "store")
+    parser.add_argument("--epoch"           , action = "store")
+    parser.add_argument("--experiment_name" , action = "store")
+    parser.add_argument("--layer"           , action = "store")
+    parser.add_argument("--root"            , default="./results",  action = "store")
 
     args            = parser.parse_args()
     prefix          = args.checkpoint
     epoch           = str(args.epoch)
     experiment_name = str(args.experiment_name)
     layer           = str(args.layer)
-
+    root_folder     = str(args.root)
+    
     SELECTED_LAYERS = [layer]
 
     while len(epoch) < 3:
         epoch = "0"+epoch
 
-    for file_name in os.listdir("results/"+prefix):
+    for file_name in os.listdir(f"{root_folder}/{prefix}/"):
         if "-ep"+epoch in file_name:
-            CHECKPOINT_PATH =  "./results/"+ prefix + "/" + file_name
+            CHECKPOINT_PATH =  CHECKPOINT_PATH =  f"{root_folder}/{prefix}/{file_name}"
             break
     
-    generate_report(CHECKPOINT_PATH,SELECTED_LAYERS,epoch=epoch,out_prefix=experiment_name)
+    generate_report(CHECKPOINT_PATH,SELECTED_LAYERS,epoch=epoch,out_prefix=experiment_name,root_folder=root_folder)
