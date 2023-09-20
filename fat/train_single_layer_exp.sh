@@ -16,6 +16,6 @@ script(){
 
 #LAUNCH EXPERIMENT ON A SPECIFIC LAYER AS FOLLOW
 
-#script "GOLDEN","conv2d_7"
+script "conv2d_7"
 script "batch_normalization_25"
 script "batch_normalization_9"
