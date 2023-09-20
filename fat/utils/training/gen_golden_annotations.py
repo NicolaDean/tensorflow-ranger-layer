@@ -13,7 +13,7 @@ from yolo3.model import yolo_eval,preprocess_true_boxes
 from train1 import *
 
 
-def get_vanilla_generator(folder_path, batch_size, classes_path,anchors_path,input_shape, random,keep_label=False):
+def get_vanilla_generator(folder_path, batch_size, classes_path,anchors_path,input_shape, random,keep_label=False,shuffle=True):
     with open(folder_path + "_annotations.txt") as f:
         annotation_lines = f.readlines()
 
@@ -21,7 +21,7 @@ def get_vanilla_generator(folder_path, batch_size, classes_path,anchors_path,inp
     anchors     = get_anchors(anchors_path)
     num_classes = len(class_names)
 
-    train_gen = data_generator_wrapper(folder_path,annotation_lines, batch_size, input_shape, anchors, num_classes, random = False,keep_label=keep_label)
+    train_gen = data_generator_wrapper(folder_path,annotation_lines, batch_size, input_shape, anchors, num_classes, random = False,keep_label=keep_label,shuffle=shuffle)
     
     return train_gen, len(annotation_lines)
 
@@ -119,7 +119,7 @@ def generate_golden_annotations(model,folder_path,annotation_lines, batch_size, 
 
     return images,golden_labels #An array of shape (Images,golden_annotations)
 
-def golden_generator(model,folder_path, batch_size, classes_path,anchors_path,input_shape, random):
+def golden_generator(model,folder_path, batch_size, classes_path,anchors_path,input_shape, random,shuffle=True):
 
     with open(folder_path + "_annotations.txt") as f:
         annotation_lines = f.readlines()
@@ -140,7 +140,7 @@ def golden_generator(model,folder_path, batch_size, classes_path,anchors_path,in
         box_data        = []
 
         for b in range(batch_size):
-            if random:
+            if shuffle:
                 if i==0:
                     #TODO SHUFFLE THE INPUT IMAGES INSTEAD TO MAKE SHUFFLE WORK
                     np.random.shuffle(annotation_lines)    
@@ -154,27 +154,16 @@ def golden_generator(model,folder_path, batch_size, classes_path,anchors_path,in
 
         image_data  = np.array(image_data)
         box_data    = np.array(box_data)
-        '''
-        yolo_out_0  = np.array(yolo_out_0)   
-        yolo_out_1  = np.array(yolo_out_1)   
-        yolo_out_2  = np.array(yolo_out_2) 
-
-        golden_labels   = [yolo_out_0,yolo_out_1,yolo_out_2]
-
-        print(golden_labels[0].shape)
-        print(golden_labels[1].shape)
-        print(golden_labels[2].shape)
-        exit()
-        '''
         
         golden_labels = preprocess_true_boxes(box_data, input_shape, anchors, num_classes)
+
         yield [image_data, *golden_labels], np.zeros(batch_size)
 
-def get_golden_generator(model,folder_path, batch_size, classes_path,anchors_path,input_shape, random):
+def get_golden_generator(model,folder_path, batch_size, classes_path,anchors_path,input_shape, random,shuffle=True):
     with open(folder_path + "_annotations.txt") as f:
         annotation_lines = f.readlines()
     
-    gen =  golden_generator(model,folder_path, batch_size, classes_path,anchors_path,input_shape, random)
+    gen =  golden_generator(model,folder_path, batch_size, classes_path,anchors_path,input_shape, random,shuffle=shuffle)
     return gen,len(annotation_lines)
 
 
@@ -190,6 +179,29 @@ def mixed_generator(vanilla_generator, golden_generator, switch_prob):
         yield a
 
 
+
+def merged_generator(model, folder_path, batch_size, classes_path, anchors_path, input_shape, random):
+   
+    vanilla_generator, train_size = get_vanilla_generator(folder_path, batch_size, classes_path, anchors_path, input_shape, random,shuffle=False)
+    golden_generator , train_size = get_golden_generator(model,folder_path, batch_size, classes_path,anchors_path,input_shape, random,shuffle=False)
+
+    while True:
+        vanilla = next(vanilla_generator)
+        golden  = next(golden_generator)
+
+        #print(vanilla[0][1].shape)
+
+        img         = vanilla[0][0]
+        vanilla_lab = vanilla[0][1:4]
+        golden_lab  = golden[0][1:4]
+
+        yield [img,*vanilla_lab,*golden_lab], np.zeros(batch_size)
+
+def get_merged_generator(model, folder_path, batch_size, classes_path, anchors_path, input_shape, random):
+    with open(folder_path + "_annotations.txt") as f:
+        annotation_lines = f.readlines()
+
+    return merged_generator(model, folder_path, batch_size, classes_path, anchors_path, input_shape, random) , len(annotation_lines)
 
 def get_mixed_generator(model, folder_path, batch_size, classes_path, anchors_path, input_shape, random, switch_prob):
     with open(folder_path + "_annotations.txt") as f:

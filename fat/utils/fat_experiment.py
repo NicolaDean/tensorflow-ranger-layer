@@ -47,13 +47,13 @@ injection_points += ["batch_normalization_25", "batch_normalization_42", "batch_
 injection_points = []
 
 
-def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGHT_NAME=FINAL_WEIGHT_NAME,injection_points=injection_points,GOLDEN_LABEL = False, MIXED_LABEL = False, MIXED_LABEL_V2 = False, injection_frequency = 1.0, switch_prob = 0.5, num_epochs_switch = 1):
+def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGHT_NAME=FINAL_WEIGHT_NAME,injection_points=injection_points,GOLDEN_LABEL = False, MIXED_LABEL = False, MIXED_LABEL_V2 = False, injection_frequency = 1.0, switch_prob = 0.5, num_epochs_switch = 1,custom_loss=False):
 
     root, log_dir, model_dir = init_path(EXPERIMENT_NAME)
 
     #Build a YOLO model with CLASSES and RANGER Integrated [TODO pass here the list of injection points]
-    model, CLASSES, RANGER, vanilla_body,model_body = build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,injection_points,classes_enable=True)
-    
+    model, CLASSES, RANGER, vanilla_body,model_body = build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,injection_points,classes_enable=True,custom_loss=custom_loss)
+
     #Get Dataset Generator
     if GOLDEN_LABEL:
         #Golden Labels
@@ -85,7 +85,9 @@ def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGH
         callback_obj = MixedGeneratorV2Obj(num_epochs_switch)
         golden_gen_train, train_size = get_mixed_v2_generator(vanilla_body, './../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True, callback_obj=callback_obj)
         callbacks_list.append(callback_obj)
-
+    elif custom_loss:
+        golden_gen_train, train_size = get_merged_generator(vanilla_body,'./../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True)
+        golden_gen_valid, valid_size = get_merged_generator(vanilla_body,'./../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True)
 
     #Start training process
     print('Train on {} samples, val on {} samples, with batch size {}.'.format(train_size, valid_size, batch_size))

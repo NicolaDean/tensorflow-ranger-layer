@@ -28,6 +28,7 @@ if __name__ == '__main__':
     parser.add_argument("--golden_label"    , default=False, action='store_true')
     parser.add_argument("--mixed_label"     , default=False, action='store_true')
     parser.add_argument("--mixed_label_v2"  , default=False, action='store_true')
+    parser.add_argument("--custom_loss"     , default=False, action='store_true')
     parser.add_argument("--frequency"       , default=0.5  , action = "store")
     parser.add_argument("--epochs"          , default=36   , action = "store")
     parser.add_argument("--layer"           , default="conv2d_5"   , action = "store")
@@ -49,10 +50,11 @@ if __name__ == '__main__':
     MIXED_LABEL_V2      = bool(args.mixed_label_v2)
     SWITCH_PROB         = float(args.switch_prob)
     NUM_EPOCHS_SWITCH   = int(args.num_epochs_switch)
+    CUSTOM_LOSS         = bool(args.custom_loss)
 
     injection_points  = [LAYER]
     print(f"Train for layer: {LAYER}")
-    run_fat_experiment(EPOCHS,EXPERIMENT_NAME,FINAL_WEIGHT_NAME,injection_points = injection_points,GOLDEN_LABEL=GOLDEN_LABEL,MIXED_LABEL=MIXED_LABEL, MIXED_LABEL_V2=MIXED_LABEL_V2, injection_frequency=INJECTION_FREQUENCY, switch_prob=SWITCH_PROB,num_epochs_switch = NUM_EPOCHS_SWITCH)
+    run_fat_experiment(EPOCHS,EXPERIMENT_NAME,FINAL_WEIGHT_NAME,injection_points = injection_points,GOLDEN_LABEL=GOLDEN_LABEL,MIXED_LABEL=MIXED_LABEL, MIXED_LABEL_V2=MIXED_LABEL_V2, injection_frequency=INJECTION_FREQUENCY, switch_prob=SWITCH_PROB,num_epochs_switch = NUM_EPOCHS_SWITCH,custom_loss=CUSTOM_LOSS)
     
 '''  
 for layer in ["conv2d_7","batch_normalization_25","batch_normalization_9"]:

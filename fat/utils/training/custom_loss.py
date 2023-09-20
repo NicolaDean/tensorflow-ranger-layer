@@ -30,11 +30,11 @@ def custom_yolo_loss(args, anchors, num_classes, ignore_thresh=.5, print_loss=Fa
     num_layers      = len(anchors)//3 # default setting
 
     #GET YOLO OUTPUT
-    yolo_outputs    = args[:num_layers]
+    yolo_outputs    = args[:num_layers]             # [0,1,2]
 
     #GET THE LABELS
-    vanilla_out     = args[num_layers:num_layers*2]
-    golden_out      = args[num_layers*2:]
+    vanilla_out     = args[num_layers:num_layers*2] #[3,4,5]
+    golden_out      = args[num_layers*2:]           #[6,7,8]
 
     #Define Loss args
     vanilla_args    = [*yolo_outputs, *vanilla_out]

@@ -9,7 +9,7 @@ import sys
 import pathlib
 import os
 
-from custom_loss import *
+from .custom_loss import *
 
 directory = str(pathlib.Path(__file__).parent.parent.absolute())
 sys.path.append(directory +  "/../../../keras-yolo3")
