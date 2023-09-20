@@ -9,7 +9,7 @@ import sys
 import pathlib
 import os
 
-from custom_loss import *
+from utils.training.custom_loss import *
 
 directory = str(pathlib.Path(__file__).parent.parent.absolute())
 sys.path.append(directory +  "/../../../keras-yolo3")
@@ -62,7 +62,7 @@ def build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,in
     vanilla_body = model_body
 
     if classes_enable:
-        RANGER,CLASSES = add_ranger_classes_to_model(model_body,injection_points,NUM_INJECTIONS=30)
+        RANGER,CLASSES = add_ranger_classes_to_model(model_body,injection_points,NUM_INJECTIONS=50)
         yolo_ranger = RANGER.get_model()
         #yolo_ranger.summary()
         

@@ -11,15 +11,19 @@ from model_helper.classes_model import *
 
 class MixedGeneratorV2Obj(keras.callbacks.Callback):
 
-    def __init__(self, num_epochs_switch):
+    def __init__(self, num_epochs_switch, v3 = False, f1_target = 0.0):
         super().__init__()
         self.num_epochs_switch = num_epochs_switch
         self.golden = True
-        self.curr_epochs = 0
-
+        self.v3 = v3
+        self.regen_golden = False
+        self.f1_target = f1_target
+        self.f1_current = 1.0
+        
 
     def on_epoch_end(self, epoch, logs=None):
-        self.curr_epochs += 1
-        if self.curr_epochs == self.num_epochs_switch:
-            self.curr_epochs = 0
+        if epoch%self.num_epochs_switch == 0:
             self.golden = not self.golden
+        if epoch%(self.num_epochs_switch*2) == 0 and self.v3:
+            self.regen_golden = True
+        

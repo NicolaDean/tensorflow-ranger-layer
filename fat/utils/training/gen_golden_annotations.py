@@ -21,7 +21,7 @@ def get_vanilla_generator(folder_path, batch_size, classes_path,anchors_path,inp
     anchors     = get_anchors(anchors_path)
     num_classes = len(class_names)
 
-    train_gen = data_generator_wrapper(folder_path,annotation_lines, batch_size, input_shape, anchors, num_classes, random = False,keep_label=keep_label)
+    train_gen = data_generator_wrapper(folder_path,annotation_lines, batch_size, input_shape, anchors, num_classes, random = random,keep_label=keep_label)
     
     return train_gen, len(annotation_lines)
 
@@ -223,3 +223,33 @@ def get_mixed_v2_generator(model, folder_path, batch_size, classes_path, anchors
     golden_generator = get_golden_generator(model,folder_path, batch_size, classes_path,anchors_path,input_shape, random)[0]
 
     return mixed_v2_generator(vanilla_generator, golden_generator, callback_obj), len(annotation_lines)
+
+
+###### MIXED GENERATOR v3: like v2, but adding regeneration of golden labels as soon as an intermediate checkpoint shows acceptable accuracy #####
+
+def mixed_v3_generator(vanilla_generator, golden_generator, callback_obj, model, folder_path, batch_size, classes_path,anchors_path,input_shape, random, CLASSES):
+    while True:
+        if callback_obj.regen_golden:
+            if callback_obj.f1_target <= callback_obj.f1_current:
+                CLASSES.disable_all()
+                golden_generator = get_golden_generator(model,folder_path, batch_size, classes_path,anchors_path,input_shape, random)[0]
+        callback_obj.regen_golden = False
+
+        if callback_obj.golden:
+            a = next(golden_generator)
+        else:
+            a = next(vanilla_generator)
+        yield a
+
+
+def get_mixed_v3_generator(model, folder_path, batch_size, classes_path, anchors_path, input_shape, random, callback_obj, CLASSES):
+
+    with open(folder_path + "_annotations.txt") as f:
+        annotation_lines = f.readlines()
+    
+    CLASSES.disable_all()
+    vanilla_generator = get_vanilla_generator(folder_path, batch_size, classes_path, anchors_path, input_shape, random)[0]
+    golden_generator = get_golden_generator(model,folder_path, batch_size, classes_path,anchors_path,input_shape, random)[0]
+
+    return mixed_v3_generator(vanilla_generator, golden_generator, callback_obj, model, folder_path, batch_size, classes_path,anchors_path,input_shape, random, CLASSES), len(annotation_lines)
+

@@ -82,7 +82,7 @@ def compute_validation_f1(model_body,valid_gen, valid_size,anchors,num_classes, 
 
 class Obj_metrics_callback(keras.callbacks.Callback):
     
-    def __init__(self,model_body,valid_path,classes_path,anchors_path,input_shape,frequency=5):
+    def __init__(self,model_body,valid_path,classes_path,anchors_path,input_shape,frequency=5, CLASSES = None, mixed_callback = None):
         super().__init__()
         self.valid_gen,self.valid_size = get_vanilla_generator(valid_path,1,classes_path,anchors_path,input_shape,random=True,keep_label=True)
 
@@ -93,6 +93,8 @@ class Obj_metrics_callback(keras.callbacks.Callback):
         self.model_body  = model_body
 
         self.frequency = frequency
+        self.CLASSES = CLASSES
+        self.mixed_callback = mixed_callback
 
     def on_epoch_end(self, epoch, logs=None):
         if (epoch % self.frequency):
@@ -105,6 +107,15 @@ class Obj_metrics_callback(keras.callbacks.Callback):
         precision,recall,f1_score,Accuracy = compute_validation_f1(self.model_body,self.valid_gen,self.valid_size,self.anchors,self.num_classes, self.input_shape)
         keys = list(logs.keys())
         print("End epoch {} of training; Precison: {}, Recall: {}, F1: {}, accuracy: {}".format(epoch, precision,recall,f1_score,Accuracy))
-    
+
+        if self.mixed_callback != None:
+            if epoch%(self.mixed_callback.num_epochs_switch*2) == 0 and self.mixed_callback.v3:
+                print("CURRENT F1 SCORE COMPUTATION - NO INJECTIONS")
+                self.CLASSES.disable_all()
+                precision,recall,f1_score,Accuracy = compute_validation_f1(self.model_body,self.valid_gen,self.valid_size,self.anchors,self.num_classes, self.input_shape)
+                self.mixed_callback.f1_current = f1_score
+                print("f1 target = {}    f1 current = {}".format(self.mixed_callback.f1_target, f1_score))
+
+
     def on_train_end(self, logs=None):
         self.on_epoch_end(1,logs)
