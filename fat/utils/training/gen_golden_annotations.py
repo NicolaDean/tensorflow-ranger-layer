@@ -13,7 +13,7 @@ from yolo3.model import yolo_eval,preprocess_true_boxes
 from train1 import *
 
 
-def get_vanilla_generator(folder_path, batch_size, classes_path,anchors_path,input_shape, random,keep_label=False,shuffle=True):
+def get_vanilla_generator(folder_path, batch_size, classes_path,anchors_path,input_shape, random,keep_label=False,shuffle=True,proc_img=True):
     with open(folder_path + "_annotations.txt") as f:
         annotation_lines = f.readlines()
 
@@ -21,7 +21,7 @@ def get_vanilla_generator(folder_path, batch_size, classes_path,anchors_path,inp
     anchors     = get_anchors(anchors_path)
     num_classes = len(class_names)
 
-    train_gen = data_generator_wrapper(folder_path,annotation_lines, batch_size, input_shape, anchors, num_classes, random = False,keep_label=keep_label,shuffle=shuffle)
+    train_gen = data_generator_wrapper(folder_path,annotation_lines, batch_size, input_shape, anchors, num_classes, random = False,keep_label=keep_label,shuffle=shuffle,proc_img=proc_img)
     
     return train_gen, len(annotation_lines)
 

@@ -63,8 +63,10 @@ def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGH
 
     #retrieve the f1score target in case of mixedV3
     if MIXED_LABEL_V3:
-        golden_gen_valid,valid_size  = get_vanilla_generator('./../../keras-yolo3/valid/',batch_size,classes_path,anchors_path,input_shape,random=True, keep_label= True)
+        golden_gen_valid,valid_size         = get_vanilla_generator('./../../keras-yolo3/valid/',1,classes_path,anchors_path,input_shape,random=True, keep_label= True)
         precision,recall,f1_target,Accuracy = compute_validation_f1(vanilla_body,golden_gen_valid,valid_size,get_anchors(anchors_path), len(get_classes(classes_path)), input_shape)
+
+    print(f'F1_SCORE BEFORE START : {f1_target}')
 
     #Get Dataset Generator
     if GOLDEN_LABEL:
