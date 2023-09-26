@@ -8,6 +8,7 @@ import sys
 import argparse
 import os
 from tqdm import tqdm
+from utils.metrics.f1_score import recompute_f1
 
 sys.path.append("./../../keras-yolo3/")
 
@@ -36,35 +37,14 @@ from model_helper.run_experiment import *
 
 sys.path.append("./")
 
-def recompute_f1(TP,FP,FN):
-        if (TP + FP) != 0:
-            precision = TP / (TP + FP) 
-        else:
-            precision = 0
 
-        if (TP + FN) != 0:
-            recall    = TP / (TP + FN)
-        else:
-            recall = 0
-
-        if (precision + recall) != 0:
-            f1_score  = (2*precision*recall)/(precision + recall)
-        else:
-            f1_score = None
-
-        if (FP+FN+TP) != 0:
-            accuracy_score = (TP) / (FP+FN+TP)
-        else:
-            accuracy_score = None
-
-        return precision,recall,f1_score,accuracy_score
 
 
 def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_boats_POST_FAT",root_folder="./result"):
 
-    OUTPUT_NAME    = f"./reports/{selected_layer[0]}/{out_prefix}_epoch_{epoch}.csv"
-    OUTPUT_NAME_F1 = f"./reports/{selected_layer[0]}/F1_REPORT_{out_prefix}_{selected_layer}.csv"
-
+    OUTPUT_NAME    = f"./reports/yolo/{selected_layer[0]}/{out_prefix}_epoch_{epoch}.csv"
+    OUTPUT_NAME_F1 = f"./reports/yolo/{selected_layer[0]}/F1_REPORT_{out_prefix}_{selected_layer}.csv"
+    
     NUM_ITERATATION_PER_SAMPLE = 50
 
     # './export/_annotations.txt'
@@ -231,7 +211,7 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
             '''
 
             #150 faults injections are performed
-            yolo.yolo_model = yolo_faulty
+            yolo.yolo_model = yolo_faulty        #switch to faulty model
             CLASSES.disable_all(verbose=False)
             layer = CLASSES_HELPER.get_layer(yolo_faulty,"classes_" + layer_name,verbose=False)
             assert isinstance(layer, ErrorSimulator)
@@ -288,21 +268,21 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
                 #-------------------------------------------------------------
                 report += [Error_ID_report("valid", layer_name, sample_id, curr_error_id[0], curr_error_id[1], 
                                             v_out_boxes.shape[0], out_boxes.shape[0], precision, recall, f1_score, tp, fp, fn, err)]
-                    
-                #-----------VANILLA F1 SCORE----------------------------------
-
-                #Compute partial vanilla F1 score
-                #CHECK CONTROLLARE SE L'ORDINE DI TRUE_LAB / V_BOX è IMPORTANTE AI FINI DI FP e FN
-                precision,recall,f1_score, tp, fp, fn = compute_F1_score(y_true_boxes,y_true_classes,v_out_boxes, v_out_classes, iou_th=0.5,verbose=False)
-
-                V_TP += tp
-                V_FP += fp
-                V_FN += fn
 
                 num_of_injection_comleted += 1
 
                 robustness = 1 - (float(num_misclassification) / float(num_of_injection_comleted))
                 progress_bar.set_postfix({'Robu': robustness,'num_exluded': num_excluded,'tot_inj':num_of_injection_comleted})
+
+            #-----------VANILLA F1 SCORE----------------------------------
+
+            #Compute partial vanilla F1 score
+            #CHECK CONTROLLARE SE L'ORDINE DI TRUE_LAB / V_BOX è IMPORTANTE AI FINI DI FP e FN
+            precision,recall,f1_score, tp, fp, fn = compute_F1_score(y_true_boxes,y_true_classes,v_out_boxes, v_out_classes, iou_th=0.5,verbose=False)
+
+            V_TP += tp
+            V_FP += fp
+            V_FN += fn
 
         #Stack result of this layer on the report
         report = pd.DataFrame(report)

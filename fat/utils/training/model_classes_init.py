@@ -21,7 +21,8 @@ from train1 import *
 sys.path.append(directory +  "/../../")
 from model_helper.run_experiment import *
 
-def build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,injection_points,classes_enable=True,freeze_body=False,custom_loss=False):
+
+def build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,injection_points,classes_enable=True,freeze_body=False,custom_loss=False,custom_loss_v2=False,custom_loss_callback=None):
 
     class_names = get_classes(classes_path)
     anchors     = get_anchors(anchors_path)
@@ -74,18 +75,59 @@ def build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,in
         yolo_ranger = vanilla_body
     #model.summary()
     
+
     if custom_loss:
         golden_true = [Input(shape=(h//{0:32, 1:16, 2:8}[l], w//{0:32, 1:16, 2:8}[l], num_anchors//3, num_classes+5)) for l in range(3)]
         loss        = custom_yolo_loss
         loss_input  = [*yolo_ranger.output, *y_true, *golden_true]
         #Define the custom way of combining golden and vanilla yolo_loss
         arguments={'anchors': anchors, 'num_classes': num_classes, 'ignore_thresh': 0.5, 'custom_loss_combinator': custom_loss_combinator}
+    if custom_loss_v2:
+        loss        = yolo_loss
+        #Create a clone model with CLASSES disabled
+        def no_inj_model(args):
+            tf.print("WITH INJECTION MODEL")
+            x1 = yolo_ranger(args)
+            tf.print("THE NO INJ MODEL IS BEING EXECUTED")
+            CLASSES.disable_all()# => IDEA SALVARSI L'ULTIMO LAYER ATTIVATO IN MANIERA DA NON DOVERLI DISATTIVARE TUTTI; O CERCARE QUELLO GIUSTO
+            x2 = yolo_ranger(args)
+
+            return [x1,x2]
+        #Materialize the clone
+        model_clone     = Lambda(no_inj_model)(image_input)
+
+        #Define loss function inputs
+        loss_input_1    = [*model_clone[0], *y_true]
+        loss_input_2    = [*model_clone[1], *y_true]
+
+        #Arguments for loss
+        arguments={'anchors': anchors, 'num_classes': num_classes, 'ignore_thresh': 0.5}
+        
     else:
         loss        = yolo_loss
         loss_input = [*yolo_ranger.output, *y_true]
         arguments={'anchors': anchors, 'num_classes': num_classes, 'ignore_thresh': 0.5}
 
-    model_loss = Lambda(loss, 
+    if custom_loss_v2:
+
+        model_loss_1 = Lambda(loss, 
+                        output_shape=(1,), 
+                        name        ='yolo_loss_x1',
+                        arguments   = arguments
+                        )\
+                        (loss_input_1)
+            
+        #Copy the loss function layer for our model clone
+        model_loss_2 = Lambda(loss, 
+                        output_shape=(1,), 
+                        name        ='yolo_loss_x2',
+                        arguments   = arguments
+                        )\
+                        (loss_input_2)
+        #Add the 2 contributions (No injection + injection)
+        model_loss = tf.keras.layers.Add(name="yolo_loss")([model_loss_1,model_loss_2])
+    else:
+            model_loss = Lambda(loss, 
                         output_shape=(1,), 
                         name        ='yolo_loss',
                         arguments   = arguments
@@ -102,3 +144,12 @@ def build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,in
         model.compile(optimizer=Adam(lr=1e-3), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
  
     return model, CLASSES, RANGER, vanilla_body, yolo_ranger
+
+
+'''
+        custom_loss_callback.set_model_classes(CLASSES,yolo_ranger,image_input)
+        loss        = custom_yolo_loss_v2
+        loss_input  = [*yolo_ranger.output, *y_true,image_input]
+        #Define the custom way of combining golden and vanilla yolo_loss
+        arguments={'anchors': anchors, 'num_classes': num_classes, 'ignore_thresh': 0.5, 'custom_loss_combinator': custom_loss_combinator,'custom_loss_callback':custom_loss_callback,'yolo_body':yolo_ranger,'CLASSES': CLASSES}
+'''

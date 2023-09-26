@@ -17,8 +17,12 @@ def layer_activation(self):
     if active:
             #print("Active")
             #Disable previously selected injection point:
-            layer = CLASSES_HELPER.get_layer(self.model,self.layer_name,verbose=False)
-            layer.set_mode(ErrorSimulatorMode.enabled)  #Enable the Selected Injection point
+            layer = CLASSES_HELPER.get_layer(self.yolo,self.layer_name,verbose=False)
+            #print(f'{type(layer)} != {type(None)} IS {type(layer) != type(None)}')
+            #Enable the Selected Injection point
+            layer.set_mode(ErrorSimulatorMode.enabled)
+            #tf.cond(type(layer) != type(None),true_fn=lambda:layer.set_mode(ErrorSimulatorMode.enabled),false_fn=lambda:None)
+            
     else:
             #Disable previously selected injection point:
             #print("NOT active")

@@ -86,7 +86,7 @@ class Obj_metrics_callback(keras.callbacks.Callback):
         super().__init__()
         self.valid_gen,self.valid_size = get_vanilla_generator(valid_path,1,classes_path,anchors_path,input_shape,random=False,keep_label=True)
 
-        class_names     = get_classes(classes_path)
+        class_names      = get_classes(classes_path)
         self.anchors     = get_anchors(anchors_path)
         self.num_classes = len(class_names)
         self.input_shape = input_shape
