@@ -21,7 +21,7 @@ def get_vanilla_generator(folder_path, batch_size, classes_path,anchors_path,inp
     anchors     = get_anchors(anchors_path)
     num_classes = len(class_names)
 
-    train_gen = data_generator_wrapper(folder_path,annotation_lines, batch_size, input_shape, anchors, num_classes, random = False,keep_label=keep_label,shuffle=shuffle)
+    train_gen = data_generator_wrapper(folder_path,annotation_lines, batch_size, input_shape, anchors, num_classes, random = random,keep_label=keep_label,shuffle=shuffle)
     
     return train_gen, len(annotation_lines)
 
@@ -243,6 +243,7 @@ def mixed_v3_generator(vanilla_generator, golden_generator, callback_obj, model,
     while True:
         if callback_obj.regen_golden:
             if callback_obj.f1_target <= callback_obj.f1_current:
+                print("REGENERATION OF GOLDEN LABELS!!")
                 CLASSES.disable_all()
                 golden_generator = get_golden_generator(model,folder_path, batch_size, classes_path,anchors_path,input_shape, random)[0]
         callback_obj.regen_golden = False

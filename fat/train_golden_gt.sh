@@ -2,10 +2,12 @@
 # Read a string with spaces using for loop
 
 script(){
+
+    
     for freq in 1.0 0.25 0.5 0.75
         do  
-            
-            python single_layer_experiment.py --experiment_name MIXED_V3 --layer $1 --frequency ${freq} --mixed_label_v3 --num_epochs_switch 5 --epochs 70
+            #GOLDEN
+            python single_layer_experiment.py --experiment_name GOLDEN_GT --layer $1 --frequency ${freq} --golden_label --epochs 20 --golden_gt
         done
     
 }
@@ -15,3 +17,4 @@ script(){
 script "batch_normalization_5"
 script "conv2d_7"
 script "batch_normalization_25"
+script "batch_normalization_9"

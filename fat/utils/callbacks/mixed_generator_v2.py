@@ -22,6 +22,7 @@ class MixedGeneratorV2Obj(keras.callbacks.Callback):
         
 
     def on_epoch_end(self, epoch, logs=None):
+        epoch += 1
         if epoch%self.num_epochs_switch == 0:
             self.golden = not self.golden
         if epoch%(self.num_epochs_switch*2) == 0 and self.v3:
