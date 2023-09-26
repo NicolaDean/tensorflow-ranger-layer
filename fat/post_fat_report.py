@@ -44,7 +44,7 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
 
     OUTPUT_NAME    = f"./reports/yolo/{selected_layer[0]}/{out_prefix}_epoch_{epoch}.csv"
     OUTPUT_NAME_F1 = f"./reports/yolo/{selected_layer[0]}/F1_REPORT_{out_prefix}_{selected_layer}.csv"
-
+    
     NUM_ITERATATION_PER_SAMPLE = 50
 
     # './export/_annotations.txt'
@@ -274,15 +274,15 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
                 robustness = 1 - (float(num_misclassification) / float(num_of_injection_comleted))
                 progress_bar.set_postfix({'Robu': robustness,'num_exluded': num_excluded,'tot_inj':num_of_injection_comleted})
 
-        #-----------VANILLA F1 SCORE----------------------------------
+            #-----------VANILLA F1 SCORE----------------------------------
 
-        #Compute partial vanilla F1 score
-        #CHECK CONTROLLARE SE L'ORDINE DI TRUE_LAB / V_BOX è IMPORTANTE AI FINI DI FP e FN
-        precision,recall,f1_score, tp, fp, fn = compute_F1_score(y_true_boxes,y_true_classes,v_out_boxes, v_out_classes, iou_th=0.5,verbose=False)
+            #Compute partial vanilla F1 score
+            #CHECK CONTROLLARE SE L'ORDINE DI TRUE_LAB / V_BOX è IMPORTANTE AI FINI DI FP e FN
+            precision,recall,f1_score, tp, fp, fn = compute_F1_score(y_true_boxes,y_true_classes,v_out_boxes, v_out_classes, iou_th=0.5,verbose=False)
 
-        V_TP += tp
-        V_FP += fp
-        V_FN += fn
+            V_TP += tp
+            V_FP += fp
+            V_FN += fn
 
         #Stack result of this layer on the report
         report = pd.DataFrame(report)
@@ -354,7 +354,7 @@ if __name__ == '__main__':
 
     for file_name in os.listdir(f"{root_folder}/{prefix}/"):
         if "-ep"+epoch in file_name:
-            CHECKPOINT_PATH =  f"{root_folder}/{prefix}/{file_name}"
+            CHECKPOINT_PATH =  CHECKPOINT_PATH =  f"{root_folder}/{prefix}/{file_name}"
             break
     
     generate_report(CHECKPOINT_PATH,SELECTED_LAYERS,epoch=epoch,out_prefix=experiment_name,root_folder=root_folder)

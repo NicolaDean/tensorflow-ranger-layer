@@ -6,7 +6,7 @@ from .training.ranger_helper import *
 from .callbacks.random_injection import ClassesSingleLayerInjection
 from .callbacks.metrics_obj import Obj_metrics_callback, compute_validation_f1
 from .callbacks.mixed_generator_v2 import MixedGeneratorV2Obj
-
+from .callbacks.custom_loss_v2_golden_pred import CustomLossV2VanillaPredictor
 import os
 import shutil
 
@@ -53,20 +53,27 @@ injection_points += ["batch_normalization_25", "batch_normalization_42", "batch_
 injection_points = []
 
 
-def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGHT_NAME=FINAL_WEIGHT_NAME,injection_points=injection_points,GOLDEN_LABEL = False, MIXED_LABEL = False, MIXED_LABEL_V2 = False, MIXED_LABEL_V3 = False, injection_frequency = 1.0, switch_prob = 0.5, num_epochs_switch = 1,custom_loss=False):
-
-    root, log_dir, model_dir = init_path(EXPERIMENT_NAME)
-
-    #Build a YOLO model with CLASSES and RANGER Integrated [TODO pass here the list of injection points]
-    model, CLASSES, RANGER, vanilla_body,model_body = build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,injection_points,classes_enable=True)
+def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGHT_NAME=FINAL_WEIGHT_NAME,injection_points=injection_points,GOLDEN_LABEL = False, MIXED_LABEL = False, MIXED_LABEL_V2 = False, MIXED_LABEL_V3 = False, injection_frequency = 1.0, switch_prob = 0.5, num_epochs_switch = 1,custom_loss=False,custom_loss_v2=False):
+ 
     
+    '''
+    if custom_loss_v2:
+        custom_loss_callback = CustomLossV2VanillaPredictor()
+    else:
+        custom_loss_callback = None
+    '''
+    custom_loss_callback = None
+    root, log_dir, model_dir = init_path(EXPERIMENT_NAME)
+    
+    #Build a YOLO model with CLASSES and RANGER Integrated [TODO pass here the list of injection points]
+    model, CLASSES, RANGER, vanilla_body,model_body = build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,injection_points,classes_enable=True,custom_loss=custom_loss,custom_loss_v2=custom_loss_v2,custom_loss_callback=custom_loss_callback)
 
     #retrieve the f1score target in case of mixedV3
     if MIXED_LABEL_V3:
         golden_gen_valid,valid_size         = get_vanilla_generator('./../../keras-yolo3/valid/',1,classes_path,anchors_path,input_shape,random=True, keep_label= True)
         precision,recall,f1_target,Accuracy = compute_validation_f1(vanilla_body,golden_gen_valid,valid_size,get_anchors(anchors_path), len(get_classes(classes_path)), input_shape)
 
-    print(f'F1_SCORE BEFORE START : {f1_target}')
+        print(f'F1_SCORE BEFORE START : {f1_target}')
 
     #Get Dataset Generator
     if GOLDEN_LABEL:
@@ -79,11 +86,11 @@ def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGH
         golden_gen_valid,valid_size  = get_vanilla_generator('./../../keras-yolo3/valid/',batch_size,classes_path,anchors_path,input_shape,random=True, keep_label= False)
 
     #Tune ranger layers
-    #ranger_domain_tuning(RANGER,golden_gen_train,int(train_size/batch_size))
+    ranger_domain_tuning(RANGER,golden_gen_train,int(train_size/batch_size))
 
     
     #Declare injection point selection callback
-    injection_layer_callback  = ClassesSingleLayerInjection(CLASSES,injection_points[0],extraction_frequency=injection_frequency,use_batch=True)
+    injection_layer_callback  = ClassesSingleLayerInjection(CLASSES,injection_points[0],extraction_frequency=injection_frequency,use_batch=True,model=model_body)
     reduce_lr                 = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3, verbose=1)
     f1_score                  = Obj_metrics_callback(model_body,'./../../keras-yolo3/valid/',classes_path,anchors_path,input_shape)
 
@@ -109,7 +116,11 @@ def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGH
     elif custom_loss:
         golden_gen_train, train_size = get_merged_generator(vanilla_body,'./../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True)
         golden_gen_valid, valid_size = get_merged_generator(vanilla_body,'./../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True)
-
+    '''
+    elif custom_loss_v2:
+        callbacks_list.append(custom_loss_callback)
+    '''
+    
     #Start training process
     print('Train on {} samples, val on {} samples, with batch size {}.'.format(train_size, valid_size, batch_size))
     model.fit(golden_gen_train,

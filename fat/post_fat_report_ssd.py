@@ -97,11 +97,13 @@ def post_process_ssd_out(detections,threshold=0.5):
             ymax = box[0][2]
             xmax = box[0][3]
 
-            (left, right, top, bottom) = (xmin * input_shape[0], xmax * input_shape[0], ymin * input_shape[1], ymax * input_shape[1])
-            new_box = [left, right, top, bottom]
+            (left, right, bottom, top) = (xmin * input_shape[0], xmax * input_shape[0], ymin * input_shape[1], ymax * input_shape[1])
+            new_box = [left, bottom, right, top]
             new_boxes.append(new_box)
 
         classes = classes.tolist() 
+        if isinstance(classes, int):
+             classes = np.expand_dims(classes, 0).tolist()
 
         return new_boxes,classes,scores
 
@@ -135,7 +137,7 @@ def post_fat_ssd(model_name='ssd',experiment_name="test",use_classes = True, inj
     #Range Tune the model
     #RAGE TUNE THE YOLO MODEL
     print("=============FINE TUNING=============")
-    for _ in tqdm(range(ranger_size//500)):
+    for _ in tqdm(range(ranger_size//31)):
         dataset = next(golden_gen_ranger)
         data   = dataset[0][0]
         image_data = data
