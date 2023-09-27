@@ -40,7 +40,7 @@ def compute_validation_f1(model_body,valid_gen, valid_size,anchors,num_classes, 
 
             yolo_out = model_body.predict(image_data,verbose=False)
             
-            boxes, scores, classes = yolo_eval(yolo_out, anchors,num_classes, input_shape,score_threshold=0.4, iou_threshold=0.5)
+            boxes, scores, classes = yolo_eval(yolo_out, anchors,num_classes, input_shape,score_threshold=0.3, iou_threshold=0.45)
             '''
             print("TRUE")
             print(y_true_boxes)
@@ -84,7 +84,7 @@ class Obj_metrics_callback(keras.callbacks.Callback):
     
     def __init__(self,model_body,valid_path,classes_path,anchors_path,input_shape,frequency=5, CLASSES = None, mixed_callback = None):
         super().__init__()
-        self.valid_gen,self.valid_size = get_vanilla_generator(valid_path,1,classes_path,anchors_path,input_shape,random=True,keep_label=True)
+        self.valid_gen,self.valid_size = get_vanilla_generator(valid_path,1,classes_path,anchors_path,input_shape,random=False,keep_label=True)
 
         class_names      = get_classes(classes_path)
         self.anchors     = get_anchors(anchors_path)
@@ -97,22 +97,22 @@ class Obj_metrics_callback(keras.callbacks.Callback):
         self.mixed_callback = mixed_callback
 
     def on_epoch_end(self, epoch, logs=None):
-        if (epoch % self.frequency):
-            return
-        
-        print("\n")
-        print("-----------------------")
-        print("-----F1 SCORE--------")
-        print("-----------------------")
-        precision,recall,f1_score,Accuracy = compute_validation_f1(self.model_body,self.valid_gen,self.valid_size,self.anchors,self.num_classes, self.input_shape)
-        keys = list(logs.keys())
-        print("End epoch {} of training; Precison: {}, Recall: {}, F1: {}, accuracy: {}".format(epoch, precision,recall,f1_score,Accuracy))
+        epoch +=1
+        if (epoch % self.frequency) == 0:
+            print("\n")
+            print("-----------------------")
+            print("-----F1 SCORE--------")
+            print("-----------------------")
+            precision,recall,f1_score,Accuracy = compute_validation_f1(self.model_body,self.valid_gen,self.valid_size,self.anchors,self.num_classes, self.input_shape)
+            keys = list(logs.keys())
+            print("End epoch {} of training; Precison: {}, Recall: {}, F1: {}, accuracy: {}".format(epoch, precision,recall,f1_score,Accuracy))
 
         if self.mixed_callback != None:
             if epoch%(self.mixed_callback.num_epochs_switch*2) == 0 and self.mixed_callback.v3:
                 print("CURRENT F1 SCORE COMPUTATION - NO INJECTIONS")
                 self.CLASSES.disable_all()
                 precision,recall,f1_score,Accuracy = compute_validation_f1(self.model_body,self.valid_gen,self.valid_size,self.anchors,self.num_classes, self.input_shape)
+                print("f1 target = {}    f1 current = {}".format(self.mixed_callback.f1_target, f1_score))
                 self.mixed_callback.f1_current = f1_score
                 print("f1 target = {}    f1 current = {}".format(self.mixed_callback.f1_target, f1_score))
 

@@ -243,6 +243,7 @@ def mixed_v3_generator(vanilla_generator, golden_generator, callback_obj, model,
     while True:
         if callback_obj.regen_golden:
             if callback_obj.f1_target <= callback_obj.f1_current:
+                print("REGENERATION OF GOLDEN LABELS!!")
                 CLASSES.disable_all()
                 golden_generator = get_golden_generator(model,folder_path, batch_size, classes_path,anchors_path,input_shape, random)[0]
         callback_obj.regen_golden = False

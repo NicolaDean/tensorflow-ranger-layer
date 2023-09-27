@@ -29,6 +29,8 @@ if __name__ == '__main__':
     parser.add_argument("--mixed_label"     , default=False, action='store_true')
     parser.add_argument("--mixed_label_v2"  , default=False, action='store_true')
     parser.add_argument("--mixed_label_v3"  , default=False, action='store_true')
+    parser.add_argument("--mixed_label_v4"  , default=False, action='store_true')
+    parser.add_argument("--golden_gt"       , default=False, action='store_true')
     parser.add_argument("--custom_loss"     , default=False, action='store_true')
     parser.add_argument("--custom_loss_v2"  , default=False, action='store_true')
     parser.add_argument("--frequency"       , default=0.5  , action = "store")
@@ -44,13 +46,15 @@ if __name__ == '__main__':
 
     LAYER               = str (args.layer)
     EXPERIMENT_NAME     = f"{experiment_name}_{args.frequency}_SINGLE_LAYER_" + LAYER
-    FINAL_WEIGHT_NAME   = f"single_layer_{LAYER}_final.h5"
+    FINAL_WEIGHT_NAME   = f"single_layer_{LAYER}_{args.frequency}_final.h5"
     EPOCHS              = int(args.epochs)
     INJECTION_FREQUENCY = float(args.frequency)
     GOLDEN_LABEL        = bool(args.golden_label)
     MIXED_LABEL         = bool(args.mixed_label)
     MIXED_LABEL_V2      = bool(args.mixed_label_v2)
     MIXED_LABEL_V3      = bool(args.mixed_label_v3)
+    MIXED_LABEL_V4      = bool(args.mixed_label_v4)
+    GOLDEN_GT           = bool(args.golden_gt)
     SWITCH_PROB         = float(args.switch_prob)
     NUM_EPOCHS_SWITCH   = int(args.num_epochs_switch)
     CUSTOM_LOSS         = bool(args.custom_loss)
@@ -59,6 +63,19 @@ if __name__ == '__main__':
 
     injection_points  = [LAYER]
     print(f"Train for layer: {LAYER}")
-    run_fat_experiment(EPOCHS,EXPERIMENT_NAME,FINAL_WEIGHT_NAME,injection_points = injection_points,GOLDEN_LABEL=GOLDEN_LABEL,MIXED_LABEL=MIXED_LABEL, MIXED_LABEL_V2=MIXED_LABEL_V2,
-                        MIXED_LABEL_V3=MIXED_LABEL_V3, injection_frequency=INJECTION_FREQUENCY, switch_prob=SWITCH_PROB,num_epochs_switch = NUM_EPOCHS_SWITCH,custom_loss=CUSTOM_LOSS,custom_loss_v2=CUSTOM_LOSS_V2)
+    run_fat_experiment(EPOCHS,
+                       EXPERIMENT_NAME,
+                       FINAL_WEIGHT_NAME,
+                       injection_points = injection_points,
+                       GOLDEN_LABEL=GOLDEN_LABEL,
+                       MIXED_LABEL=MIXED_LABEL,
+                       MIXED_LABEL_V2=MIXED_LABEL_V2,
+                       MIXED_LABEL_V3=MIXED_LABEL_V3,
+                       MIXED_LABEL_V4=MIXED_LABEL_V4,
+                       GOLDEN_GT=GOLDEN_GT,
+                       injection_frequency=INJECTION_FREQUENCY,
+                       switch_prob=SWITCH_PROB,
+                       num_epochs_switch = NUM_EPOCHS_SWITCH,
+                       custom_loss=CUSTOM_LOSS,
+                       custom_loss_v2=CUSTOM_LOSS_V2)
     
