@@ -82,7 +82,45 @@ def build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,in
         loss_input  = [*yolo_ranger.output, *y_true, *golden_true]
         #Define the custom way of combining golden and vanilla yolo_loss
         arguments={'anchors': anchors, 'num_classes': num_classes, 'ignore_thresh': 0.5, 'custom_loss_combinator': custom_loss_combinator}
-    if custom_loss_v2:
+    else:
+        loss        = yolo_loss
+        loss_input = [*yolo_ranger.output, *y_true]
+        arguments={'anchors': anchors, 'num_classes': num_classes, 'ignore_thresh': 0.5}
+
+    model_loss = Lambda(loss, 
+                        output_shape=(1,), 
+                        name        ='yolo_loss',
+                        arguments   = arguments
+                        )\
+                        (loss_input)
+    if custom_loss:
+        model = Model([yolo_ranger.input, *y_true, *golden_true], model_loss)
+    elif custom_loss_v2:
+        yolo_model  = Model([yolo_ranger.input, *y_true], model_loss)
+        model       = CustomLossModel([yolo_ranger.input, *y_true], model_loss)
+        model.set_model(yolo_model,CLASSES=CLASSES)
+    else:
+        model = Model([yolo_ranger.input, *y_true], model_loss)
+
+    if not freeze_body:
+        model.compile(optimizer=Adam(lr=1e-4), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
+    else:
+        model.compile(optimizer=Adam(lr=1e-3), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
+    
+    return model, CLASSES, RANGER, vanilla_body, yolo_ranger
+
+
+'''
+        custom_loss_callback.set_model_classes(CLASSES,yolo_ranger,image_input)
+        loss        = custom_yolo_loss_v2
+        loss_input  = [*yolo_ranger.output, *y_true,image_input]
+        #Define the custom way of combining golden and vanilla yolo_loss
+        arguments={'anchors': anchors, 'num_classes': num_classes, 'ignore_thresh': 0.5, 'custom_loss_combinator': custom_loss_combinator,'custom_loss_callback':custom_loss_callback,'yolo_body':yolo_ranger,'CLASSES': CLASSES}
+'''
+
+'''
+    elif custom_loss_v2:
+        
         loss        = yolo_loss
         #Create a clone model with CLASSES disabled
         def no_inj_model(args):
@@ -102,12 +140,6 @@ def build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,in
 
         #Arguments for loss
         arguments={'anchors': anchors, 'num_classes': num_classes, 'ignore_thresh': 0.5}
-        
-    else:
-        loss        = yolo_loss
-        loss_input = [*yolo_ranger.output, *y_true]
-        arguments={'anchors': anchors, 'num_classes': num_classes, 'ignore_thresh': 0.5}
-
     if custom_loss_v2:
 
         model_loss_1 = Lambda(loss, 
@@ -126,30 +158,4 @@ def build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,in
                         (loss_input_2)
         #Add the 2 contributions (No injection + injection)
         model_loss = tf.keras.layers.Add(name="yolo_loss")([model_loss_1,model_loss_2])
-    else:
-            model_loss = Lambda(loss, 
-                        output_shape=(1,), 
-                        name        ='yolo_loss',
-                        arguments   = arguments
-                        )\
-                        (loss_input)
-    if custom_loss:
-        model = Model([yolo_ranger.input, *y_true, *golden_true], model_loss)
-    else:
-        model = Model([yolo_ranger.input, *y_true], model_loss)
-
-    if not freeze_body:
-        model.compile(optimizer=Adam(lr=1e-4), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
-    else:
-        model.compile(optimizer=Adam(lr=1e-3), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
- 
-    return model, CLASSES, RANGER, vanilla_body, yolo_ranger
-
-
-'''
-        custom_loss_callback.set_model_classes(CLASSES,yolo_ranger,image_input)
-        loss        = custom_yolo_loss_v2
-        loss_input  = [*yolo_ranger.output, *y_true,image_input]
-        #Define the custom way of combining golden and vanilla yolo_loss
-        arguments={'anchors': anchors, 'num_classes': num_classes, 'ignore_thresh': 0.5, 'custom_loss_combinator': custom_loss_combinator,'custom_loss_callback':custom_loss_callback,'yolo_body':yolo_ranger,'CLASSES': CLASSES}
-'''
+        '''

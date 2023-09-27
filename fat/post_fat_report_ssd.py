@@ -137,7 +137,7 @@ def post_fat_ssd(model_name='ssd',experiment_name="test",use_classes = True, inj
     #Range Tune the model
     #RAGE TUNE THE YOLO MODEL
     print("=============FINE TUNING=============")
-    for _ in tqdm(range(ranger_size//31)):
+    for _ in tqdm(range(ranger_size//32)):
         dataset = next(golden_gen_ranger)
         data   = dataset[0][0]
         image_data = data
@@ -219,12 +219,11 @@ def post_fat_ssd(model_name='ssd',experiment_name="test",use_classes = True, inj
             Injection Campaign
             ----------------------------------------------------------
         '''
-        '''
         #Enable Classes
         CLASSES.disable_all(verbose=False)
-        layer = CLASSES_HELPER.get_layer(model._feature_extractor.classification_backbone,"classes_" + injection_point,verbose=False)
-        assert isinstance(layer, ErrorSimulator)
-        layer.set_mode(ErrorSimulatorMode.enabled)
+        #layer = CLASSES_HELPER.get_layer(model._feature_extractor.classification_backbone,"classes_" + injection_point,verbose=False)
+        #assert isinstance(layer, ErrorSimulator)
+        #layer.set_mode(ErrorSimulatorMode.enabled)
 
         for _ in range(NUM_INJECTIONS):
 
@@ -237,8 +236,8 @@ def post_fat_ssd(model_name='ssd',experiment_name="test",use_classes = True, inj
 
             
             # get injected error id (cardinality, pattern)
-            curr_error_id = layer.error_ids[layer.get_history()[-1]]
-            curr_error_id = np.squeeze(curr_error_id)
+            #curr_error_id = layer.error_ids[layer.get_history()[-1]]
+            #curr_error_id = np.squeeze(curr_error_id)
 
             I_TP += tp
             I_FP += fp
@@ -261,7 +260,7 @@ def post_fat_ssd(model_name='ssd',experiment_name="test",use_classes = True, inj
             robustness = 1 - (float(num_misclassification) / float(num_of_injection_comleted))
             progress_bar.set_postfix({'Robu': robustness,'num_exluded': num_excluded,'tot_inj':num_of_injection_comleted})
         
-        '''
+        
     #Stack result of this layer on the report
     report = pd.DataFrame(report)
     report.to_csv(OUTPUT_NAME, mode = 'a', header = False)

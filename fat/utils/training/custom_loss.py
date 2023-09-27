@@ -100,3 +100,60 @@ def custom_yolo_loss_v2(args, anchors, num_classes, ignore_thresh=.5, print_loss
     loss            = custom_loss_combinator(inj_loss,golden_loss)
 
     return loss
+
+
+import tensorflow as tf
+class CustomLossModel(tf.keras.Model):
+
+    def __init__(self,yolo_body=None,CLASSES=None):
+        super(CustomLossModel, self).__init__()
+        self.yolo_body = yolo_body
+        self.CLASSES   = CLASSES
+        self.loss_tracker       = tf.keras.metrics.Mean(name="loss_tot")
+        self.loss_tracker_gt    = tf.keras.metrics.Mean(name="loss_inj")
+        self.loss_tracker_inj   = tf.keras.metrics.Mean(name="loss_gt")
+
+        
+    def set_model(self,model,CLASSES=None):
+        self.model      = model
+        self.CLASSES    = CLASSES
+
+    # implement the call method
+    def call(self, inputs, *args, **kwargs):
+       return self.model(inputs)
+
+    def train_step(self, data):
+        # Unpack the data. Its structure depends on your model and
+        # on what you pass to `fit()`.
+        x, y = data
+        
+        with tf.GradientTape() as tape:
+            
+            loss_inj = self(x, training=True)  # Forward pass Injection 
+            #self.CLASSES.disable_all()         # Disable Classes
+            loss_gt  = self(x, training=True)  # Forward pass Ground truth
+
+            loss = loss_gt + loss_inj           #Sum the loss contribution
+
+        # Compute gradients
+        trainable_vars = self.trainable_variables
+        gradients = tape.gradient(loss, trainable_vars)
+        # Update weights
+        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+
+        # Compute our own metrics
+        self.loss_tracker.update_state(loss)
+        self.loss_tracker_inj.update_state(loss_inj)
+        self.loss_tracker_gt.update_state(loss_gt)
+
+        #self.mae_metric.update_state(y, y_pred)
+        return {"loss_tot": self.loss_tracker.result(),"loss_inj": self.loss_tracker_inj.result(),"loss_gt": self.loss_tracker_gt.result()}
+
+    @property
+    def metrics(self):
+        # We list our `Metric` objects here so that `reset_states()` can be
+        # called automatically at the start of each epoch
+        # or at the start of `evaluate()`.
+        # If you don't implement this property, you have to call
+        # `reset_states()` yourself at the time of your choosing.
+        return [self.loss_tracker,self.loss_tracker_inj,self.loss_tracker_gt]
