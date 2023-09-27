@@ -256,6 +256,7 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
                 I_TP += tp
                 I_FP += fp
                 I_FN += fn
+
                 
                 #-----------CHECK IF THIS INFERENCE WAS MISCLASSIFIED---------
                 if len(v_out_boxes.shape) != len(out_boxes.shape):
@@ -273,6 +274,15 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
 
                 robustness = 1 - (float(num_misclassification) / float(num_of_injection_comleted))
                 progress_bar.set_postfix({'Robu': robustness,'num_exluded': num_excluded,'tot_inj':num_of_injection_comleted})
+                
+                #GLOBAL F1 SCORE (Faulty prediction vs Ground Truth)
+                precision,recall,f1_score, tp, fp, fn = compute_F1_score(y_true_boxes,y_true_classes,out_boxes, out_classes, iou_th=0.5,verbose=False)
+
+                G_TP += tp
+                G_FP += fp
+                G_FN += fn
+
+
 
             #-----------VANILLA F1 SCORE----------------------------------
 
@@ -297,13 +307,17 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
         I_precision,I_recall,I_f1_score,I_accuracy_score = recompute_f1(I_TP,I_FP,I_FN)
         print("Injection: Precison: {}, Recall: {}, F1: {}, accuracy: {}".format( I_precision,I_recall,I_f1_score,I_accuracy_score))
 
+        #Compute Global F1 for this layer
+        G_precision,G_recall,G_f1_score,G_accuracy_score = recompute_f1(G_TP,G_FP,G_FN)
+        print("Global: Precison: {}, Recall: {}, F1: {}, accuracy: {}".format( G_precision,G_recall,G_f1_score,G_accuracy_score))
+
         f1_score_report = [F1_score_report(layer_name,
                                            epoch,
                                            num_misclassification_box_shape,
                                            num_misclassification_wrong_box,
                                            num_misclassification,
                                            robustness,
-                                           V_f1_score,I_f1_score,
+                                           V_f1_score, I_f1_score, G_f1_score,
                                            V_accuracy_score,I_accuracy_score,
                                            V_precision,I_precision,
                                            V_recall,I_recall)]
