@@ -42,7 +42,7 @@ class ClassesSingleLayerInjection(keras.callbacks.Callback):
 
     def on_train_batch_begin(self, epoch, logs=None):
         if self.use_batch:
-            print("ACTIVATEEEEE CLASSES CALLBACK")
+            #print("ACTIVATEEEEE CLASSES CALLBACK")
             layer_activation(self)
 
     def on_epoch_begin(self, epoch, logs=None):
