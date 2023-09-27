@@ -63,6 +63,19 @@ if __name__ == '__main__':
 
     injection_points  = [LAYER]
     print(f"Train for layer: {LAYER}")
-    run_fat_experiment(EPOCHS,EXPERIMENT_NAME,FINAL_WEIGHT_NAME,injection_points = injection_points,GOLDEN_LABEL=GOLDEN_LABEL,MIXED_LABEL=MIXED_LABEL, MIXED_LABEL_V2=MIXED_LABEL_V2,
-                        MIXED_LABEL_V3=MIXED_LABEL_V3,MIXED_LABEL_V4=MIXED_LABEL_V4,GOLDEN_GT=GOLDEN_GT,injection_frequency=INJECTION_FREQUENCY, switch_prob=SWITCH_PROB,num_epochs_switch = NUM_EPOCHS_SWITCH,custom_loss=CUSTOM_LOSS,custom_loss_v2=CUSTOM_LOSS_V2)
+    run_fat_experiment(EPOCHS,
+                       EXPERIMENT_NAME,
+                       FINAL_WEIGHT_NAME,
+                       injection_points = injection_points,
+                       GOLDEN_LABEL=GOLDEN_LABEL,
+                       MIXED_LABEL=MIXED_LABEL,
+                       MIXED_LABEL_V2=MIXED_LABEL_V2,
+                       MIXED_LABEL_V3=MIXED_LABEL_V3,
+                       MIXED_LABEL_V4=MIXED_LABEL_V4,
+                       GOLDEN_GT=GOLDEN_GT,
+                       injection_frequency=INJECTION_FREQUENCY,
+                       switch_prob=SWITCH_PROB,
+                       num_epochs_switch = NUM_EPOCHS_SWITCH,
+                       custom_loss=CUSTOM_LOSS,
+                       custom_loss_v2=CUSTOM_LOSS_V2)
     

@@ -89,14 +89,12 @@ def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGH
 
     #Tune ranger layers
     ranger_domain_tuning(RANGER,golden_gen_train,int(train_size/batch_size))
-    ranger_domain_tuning(RANGER,golden_gen_train,int(train_size/batch_size))
+
 
     
     #Declare injection point selection callback
     injection_layer_callback  = ClassesSingleLayerInjection(CLASSES,injection_points[0],extraction_frequency=injection_frequency,use_batch=True)
     reduce_lr                 = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3, verbose=1, min_lr=0.000001)
-    injection_layer_callback  = ClassesSingleLayerInjection(CLASSES,injection_points[0],extraction_frequency=injection_frequency,use_batch=True,model=model_body)
-    reduce_lr                 = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3, verbose=1)
     f1_score                  = Obj_metrics_callback(model_body,'./../../keras-yolo3/valid/',classes_path,anchors_path,input_shape)
 
 
