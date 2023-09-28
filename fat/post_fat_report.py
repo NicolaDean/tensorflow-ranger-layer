@@ -140,7 +140,9 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
                                       ("Precision", float), ("Recall", float), ("F1_score", float),
                                       ("True_positives", float), ("False_positives", float), ("False_negatives", float), ("Error", str)])
     #("Num_excluded",int),("Num_empty")
-    F1_score_report = make_dataclass("F1_score_report",[("Layer_name",str),("Epoch",int),("Num_wrong_box_shape",int),("Num_wrong_box_count",int),("TOT_Num_Misclassification",int),("Robustness",float),("V_F1_score",float),("I_F1_score",float),("V_accuracy",float),("I_accuracy",float),("V_precision",float),("I_precision",float),("V_recall",float),("I_recall",float),])
+    F1_score_report = make_dataclass("F1_score_report",[("Layer_name",str),("Epoch",int),("Num_wrong_box_shape",int),("Num_wrong_box_count",int),("TOT_Num_Misclassification",int),
+                                                        ("Robustness",float),("V_F1_score",float),("I_F1_score",float),("G_F1_score",float),("V_accuracy",float),("I_accuracy",float),("G_accuracy",float),
+                                                        ("V_precision",float),("I_precision",float),("G_precision",float),("V_recall",float),("I_recall",float),("G_recall",float),])
     
     #report = pd.DataFrame(columns = Error_ID_report.__annotations__.keys())
     #report.to_csv("../reports/yolo_boats_test_NOrandom.csv")
@@ -165,6 +167,7 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
 
         V_TP,V_FP,V_FN = 0,0,0
         I_TP,I_FP,I_FN = 0,0,0
+        G_TP,G_FP,G_FN = 0,0,0
 
         #for all test samples
         progress_bar = tqdm(range(len(valid_lines)))
@@ -296,7 +299,8 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
 
         #Stack result of this layer on the report
         report = pd.DataFrame(report)
-        report.to_csv(OUTPUT_NAME, mode = 'a', header = False)
+        #TODO uncomment this!!!
+        #report.to_csv(OUTPUT_NAME, mode = 'a', header = False)
         report = []
 
         #Compute Vanilla   F1 for this layer.
@@ -318,13 +322,14 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
                                            num_misclassification,
                                            robustness,
                                            V_f1_score, I_f1_score, G_f1_score,
-                                           V_accuracy_score,I_accuracy_score,
-                                           V_precision,I_precision,
-                                           V_recall,I_recall)]
+                                           V_accuracy_score,I_accuracy_score, G_accuracy_score,
+                                           V_precision,I_precision, G_precision, 
+                                           V_recall,I_recall, G_recall)]
         
         f1_score_report = pd.DataFrame(f1_score_report)
         f1_score_report.to_csv(OUTPUT_NAME_F1, mode = 'a', header = False)
 
+        
  ###################### END REPORT ##########################
 
 
