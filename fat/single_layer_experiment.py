@@ -1,8 +1,14 @@
+import tensorflow as tf
+gpu = tf.config.list_physical_devices('GPU')
+tf.config.experimental.set_memory_growth(gpu[0], True) #limits gpu memory
+
 from utils.fat_experiment import *
 import sys
 import argparse
 import os
 from tqdm import tqdm
+
+
 
 '''
 injection_points = ["conv2d", "batch_normalization"]

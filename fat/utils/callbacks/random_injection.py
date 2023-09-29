@@ -17,7 +17,7 @@ def layer_activation(self):
     if active:
             #print("Active")
             #Disable previously selected injection point:
-            layer = CLASSES_HELPER.get_layer(self.yolo,self.layer_name,verbose=False)
+            layer = CLASSES_HELPER.get_layer(self.model,self.layer_name,verbose=False)
             #print(f'{type(layer)} != {type(None)} IS {type(layer) != type(None)}')
             #Enable the Selected Injection point
             layer.set_mode(ErrorSimulatorMode.enabled)

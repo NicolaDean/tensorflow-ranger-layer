@@ -62,7 +62,7 @@ injection_points = []
 
 def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGHT_NAME=FINAL_WEIGHT_NAME,injection_points=injection_points,GOLDEN_LABEL = False, MIXED_LABEL = False, MIXED_LABEL_V2 = False, MIXED_LABEL_V3 = False,MIXED_LABEL_V4 = False,GOLDEN_GT = False, injection_frequency = 1.0, switch_prob = 0.5, num_epochs_switch = 1,custom_loss=False,custom_loss_v2=False):
 
-    root, log_dir, model_dir = init_path(EXPERIMENT_NAME)
+    root, log_dir, model_dir = init_path(root=f'./results/{injection_points[0]}/',EXPERIMENT_NAME=EXPERIMENT_NAME)
 
     #Build a YOLO model with CLASSES and RANGER Integrated [TODO pass here the list of injection points]
     model, CLASSES, RANGER, vanilla_body,model_body = build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,injection_points,classes_enable=True,custom_loss=custom_loss,custom_loss_v2=custom_loss_v2)
@@ -88,7 +88,7 @@ def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGH
         golden_gen_valid,valid_size  = get_vanilla_generator('./../../keras-yolo3/valid/',batch_size,classes_path,anchors_path,input_shape,random=True, keep_label= False)
 
     #Tune ranger layers
-    ranger_domain_tuning(RANGER,golden_gen_train,int(train_size/batch_size))
+    ranger_domain_tuning(RANGER,golden_gen_train,int(train_size/256))
 
 
     

@@ -126,20 +126,19 @@ class CustomLossModel(tf.keras.Model):
         # Unpack the data. Its structure depends on your model and
         # on what you pass to `fit()`.
         x, y = data
-        
         with tf.GradientTape() as tape:
-            
             loss_inj = self(x, training=True)  # Forward pass Injection 
-            #self.CLASSES.disable_all()         # Disable Classes
-            loss_gt  = self(x, training=True)  # Forward pass Ground truth
+            dx_inj   = tape.gradient(loss_inj, self.trainable_vars)
 
-            loss = loss_gt + loss_inj           #Sum the loss contribution
-
-        # Compute gradients
-        trainable_vars = self.trainable_variables
-        gradients = tape.gradient(loss, trainable_vars)
+        with tf.GradientTape() as tape:
+            loss_gt  = self(x, training=True)  # Forward pass Injection 
+            dx_gt    = tape.gradient(loss_gt, self.trainable_vars)
+       
+        loss = loss_gt + loss_inj
+        
         # Update weights
-        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+        self.optimizer.apply_gradients(zip(dx_inj, self.trainable_vars))
+        self.optimizer.apply_gradients(zip(dx_gt , self.trainable_vars))
 
         # Compute our own metrics
         self.loss_tracker.update_state(loss)
@@ -157,3 +156,22 @@ class CustomLossModel(tf.keras.Model):
         # If you don't implement this property, you have to call
         # `reset_states()` yourself at the time of your choosing.
         return [self.loss_tracker,self.loss_tracker_inj,self.loss_tracker_gt]
+    
+
+    '''
+     with tf.GradientTape() as tape:
+        loss_inj = self(x, training=True)  # Forward pass Injection 
+            
+        self.CLASSES.disable_all(verbose=False)         # Disable Classes
+
+        with tf.GradientTape() as tape:   
+            loss_gt  = self(x, training=True)  # Forward pass Ground truth
+            
+            loss = loss_gt + loss_inj           #Sum the loss contribution
+
+        # Compute gradients
+        trainable_vars = self.trainable_variables
+        gradients = tape.gradient(loss, trainable_vars)
+        # Update weights
+        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+    '''

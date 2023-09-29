@@ -87,9 +87,13 @@ def build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,in
         loss_input = [*yolo_ranger.output, *y_true]
         arguments={'anchors': anchors, 'num_classes': num_classes, 'ignore_thresh': 0.5}
 
+    loss_name   = 'yolo_loss'
+    if custom_loss_v2:
+        loss_name = "loss_tot"
+
     model_loss = Lambda(loss, 
                         output_shape=(1,), 
-                        name        ='yolo_loss',
+                        name        =loss_name,
                         arguments   = arguments
                         )\
                         (loss_input)
@@ -99,13 +103,18 @@ def build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,in
         yolo_model  = Model([yolo_ranger.input, *y_true], model_loss)
         model       = CustomLossModel([yolo_ranger.input, *y_true], model_loss)
         model.set_model(yolo_model,CLASSES=CLASSES)
+        
     else:
         model = Model([yolo_ranger.input, *y_true], model_loss)
-
+    
+    loss = {f'{loss_name}': lambda y_true, y_pred: y_pred}
+    if custom_loss_v2:
+        loss = None
+        
     if not freeze_body:
-        model.compile(optimizer=Adam(lr=1e-4), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
+        model.compile(optimizer=Adam(lr=1e-4), loss = loss) # recompile to apply the change
     else:
-        model.compile(optimizer=Adam(lr=1e-3), loss={'yolo_loss': lambda y_true, y_pred: y_pred}) # recompile to apply the change
+        model.compile(optimizer=Adam(lr=1e-3), loss = loss) # recompile to apply the change
     
     return model, CLASSES, RANGER, vanilla_body, yolo_ranger
 
