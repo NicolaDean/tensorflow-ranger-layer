@@ -1,6 +1,9 @@
 import tensorflow as tf
+
 gpu = tf.config.list_physical_devices('GPU')
-tf.config.experimental.set_memory_growth(gpu[0], True) #limits gpu memory
+if len(gpu) != 0:
+    print("LIMIT GPU GROWTH")
+    tf.config.experimental.set_memory_growth(gpu[0], True) #limits gpu memory
 
 from utils.fat_experiment import *
 import sys
@@ -22,10 +25,11 @@ injection_points += ["batch_normalization_25", "batch_normalization_42", "batch_
 #injection_points = ["batch_normalization"]
 #injection_points = ["conv2d_"+str(i) for i in range(1, 10)]
 #injection_points += ["batch_normalization_"+str(i) for i in range(2, 10)]
-injection_points += ["batch_normalization_"+str(i) for i in range(5, 10)]
-injection_points += ["conv2d_25","conv2d_42","conv2d_56","conv2d_71"]
-injection_points += ["batch_normalization_25", "batch_normalization_42", "batch_normalization_56", "batch_normalization_71"]
-
+injection_points =  []
+injection_points += ["batch_normalization_"+str(i) for i in range(3, 10)]
+injection_points += ["batch_normalization_"+str(i*10) for i in range(2, 8)]
+injection_points += ["conv2d_"+str(i) for i in range(3, 10)]
+injection_points += ["conv2d_"+str(i*10) for i in range(2, 8)]
 
 if __name__ == '__main__':
 
@@ -44,6 +48,10 @@ if __name__ == '__main__':
     parser.add_argument("--layer"           , default="conv2d_5"   , action = "store")
     parser.add_argument("--switch_prob"     , default =0.5      , action = "store")
     parser.add_argument("--num_epochs_switch", default =1     , action = "store")
+    parser.add_argument("--multi_layer"     , default=False, action='store_true')
+    parser.add_argument("--unif_stack_policy", default=False,action='store_true')
+    parser.add_argument("--vanilla_training",default=False,action='store_true')
+    parser.add_argument("--dataset_path"    ,default="./../../keras-yolo3/",action='store')
 
     args            = parser.parse_args()
     prefix          = args.golden_label
@@ -51,7 +59,6 @@ if __name__ == '__main__':
     experiment_name = str(args.experiment_name)
 
     LAYER               = str (args.layer)
-    EXPERIMENT_NAME     = f"{experiment_name}_{args.frequency}_SINGLE_LAYER_" + LAYER
     FINAL_WEIGHT_NAME   = f"single_layer_{LAYER}_{args.frequency}_final.h5"
     EPOCHS              = int(args.epochs)
     INJECTION_FREQUENCY = float(args.frequency)
@@ -65,10 +72,20 @@ if __name__ == '__main__':
     NUM_EPOCHS_SWITCH   = int(args.num_epochs_switch)
     CUSTOM_LOSS         = bool(args.custom_loss)
     CUSTOM_LOSS_V2      = bool(args.custom_loss_v2)
+    MULTI_LAYERS_FLAG   = bool(args.multi_layer)
+    UNIFORM_LAYER_POLICY= bool(args.unif_stack_policy)
+    VANILLA_TRAINING    = bool(args.vanilla_training)
+    DATASET             = str(args.dataset_path)
     
 
-    injection_points  = [LAYER]
-    print(f"Train for layer: {LAYER}")
+    if not MULTI_LAYERS_FLAG:
+        injection_points    = [LAYER]
+        EXPERIMENT_NAME     = f"{experiment_name}_{args.frequency}_SINGLE_LAYER_" + LAYER
+        print(f"Train for layer: {LAYER}")
+    else:
+        EXPERIMENT_NAME = f"{experiment_name}_{args.frequency}"
+
+
     run_fat_experiment(EPOCHS,
                        EXPERIMENT_NAME,
                        FINAL_WEIGHT_NAME,
@@ -83,5 +100,9 @@ if __name__ == '__main__':
                        switch_prob=SWITCH_PROB,
                        num_epochs_switch = NUM_EPOCHS_SWITCH,
                        custom_loss=CUSTOM_LOSS,
-                       custom_loss_v2=CUSTOM_LOSS_V2)
+                       custom_loss_v2=CUSTOM_LOSS_V2,
+                       MULTI_LAYERS_FLAG = MULTI_LAYERS_FLAG,
+                       UNIFORM_LAYER_POLICY=UNIFORM_LAYER_POLICY,
+                       DATASET=DATASET,
+                       VANILLA_TRAINING=VANILLA_TRAINING)
     

@@ -109,7 +109,7 @@ class Obj_metrics_callback(keras.callbacks.Callback):
 
         if self.mixed_callback != None:
             if epoch%(self.mixed_callback.num_epochs_switch*2) == 0 and self.mixed_callback.v3:
-                print("CURRENT F1 SCORE COMPUTATION - NO INJECTIONS")
+                tf.print("CURRENT F1 SCORE COMPUTATION - NO INJECTIONS")
                 self.CLASSES.disable_all()
                 precision,recall,f1_score,Accuracy = compute_validation_f1(self.model_body,self.valid_gen,self.valid_size,self.anchors,self.num_classes, self.input_shape)
                 print("f1 target = {}    f1 current = {}".format(self.mixed_callback.f1_target, f1_score))

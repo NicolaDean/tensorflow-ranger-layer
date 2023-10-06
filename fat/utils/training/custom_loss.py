@@ -126,19 +126,22 @@ class CustomLossModel(tf.keras.Model):
         # Unpack the data. Its structure depends on your model and
         # on what you pass to `fit()`.
         x, y = data
+     
         with tf.GradientTape() as tape:
             loss_inj = self(x, training=True)  # Forward pass Injection 
-            dx_inj   = tape.gradient(loss_inj, self.trainable_vars)
+            dx_inj   = tape.gradient(loss_inj, self.trainable_variables)
+            self.optimizer.apply_gradients(zip(dx_inj, self.trainable_variables))
+
+        self.CLASSES.disable_all(verbose=False)         # Disable Classes
 
         with tf.GradientTape() as tape:
             loss_gt  = self(x, training=True)  # Forward pass Injection 
-            dx_gt    = tape.gradient(loss_gt, self.trainable_vars)
+            dx_gt    = tape.gradient(loss_gt, self.trainable_variables)
+            self.optimizer.apply_gradients(zip(dx_gt , self.trainable_variables))
        
         loss = loss_gt + loss_inj
         
         # Update weights
-        self.optimizer.apply_gradients(zip(dx_inj, self.trainable_vars))
-        self.optimizer.apply_gradients(zip(dx_gt , self.trainable_vars))
 
         # Compute our own metrics
         self.loss_tracker.update_state(loss)
@@ -174,4 +177,37 @@ class CustomLossModel(tf.keras.Model):
         gradients = tape.gradient(loss, trainable_vars)
         # Update weights
         self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+    '''
+
+    '''
+            with tf.GradientTape() as tape:
+            loss_inj = self(x, training=True)  # Forward pass Injection 
+            dx_inj   = tape.gradient(loss_inj, self.trainable_variables)
+            self.optimizer.apply_gradients(zip(dx_inj, self.trainable_variables))
+
+        self.CLASSES.disable_all(verbose=False)         # Disable Classes
+
+        with tf.GradientTape() as tape:
+            loss_gt  = self(x, training=True)  # Forward pass Injection 
+            dx_gt    = tape.gradient(loss_gt, self.trainable_variables)
+            self.optimizer.apply_gradients(zip(dx_gt , self.trainable_variables))
+       
+        loss = loss_gt + loss_inj
+    '''
+
+
+    '''
+       with tf.GradientTape(persistent=True) as tape:
+            tape.watch(x)
+            loss_inj = self(x, training=True)  # Forward pass Injection 
+            dx_inj   = tape.gradient(loss_inj, self.trainable_variables)
+
+        self.CLASSES.disable_all(verbose=False)         # Disable Classes
+
+        with tf.GradientTape() as tape:
+            loss_gt  = self(x, training=True)  # Forward pass Injection 
+            dx_gt    = tape.gradient(loss_gt, self.trainable_variables)
+        
+        self.optimizer.apply_gradients(zip((dx_gt +  dx_inj), self.trainable_variables))
+    
     '''

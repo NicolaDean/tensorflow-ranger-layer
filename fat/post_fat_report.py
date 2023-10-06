@@ -40,20 +40,21 @@ sys.path.append("./")
 
 
 
-def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_boats_POST_FAT",root_folder="./result"):
+def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_boats_POST_FAT",root_folder="./result",DATASET="./../../keras-yolo3",SKIP_INJECTION=False,SINGLE_F1_FILE=False):
 
     OUTPUT_NAME    = f"./reports/yolo/{selected_layer[0]}/{out_prefix}_epoch_{epoch}.csv"
     OUTPUT_NAME_F1 = f"./reports/yolo/{selected_layer[0]}/F1_REPORT_{out_prefix}_{selected_layer}.csv"
     
+    if SINGLE_F1_FILE:
+        OUTPUT_NAME_F1 = f"./reports/yolo/F1_REPORT_{out_prefix}.csv"
+    
     NUM_ITERATATION_PER_SAMPLE = 50
 
-    # './export/_annotations.txt'
-    annotation_path_train = './../../keras-yolo3/train/_annotations.txt'
-    annotation_path_test  = './../../keras-yolo3/test/_annotations.txt'
-    annotation_path_valid  = './../../keras-yolo3/valid/_annotations.txt'
-    #log_dir = 'logs/000/'
-    # './export/_annotations.txt'
-    classes_path = './../../keras-yolo3/train/_classes.txt'
+    annotation_path_train  = f'{DATASET}/train/_annotations.txt'
+    annotation_path_valid  = f'{DATASET}/valid/_annotations.txt'
+
+    classes_path = f'{DATASET}/train/_classes.txt'
+    
     anchors_path = './../../keras-yolo3/model_data/yolo_anchors.txt'
     class_names = get_classes(classes_path)
     print("-------------------CLASS NAMES-------------------")
@@ -67,27 +68,29 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
     with open(annotation_path_train) as f:
         train_lines = f.readlines()
     
-    with open(annotation_path_test) as f:
-        test_lines = f.readlines()
-    
     with open(annotation_path_valid) as f:
         valid_lines = f.readlines()
 
     print(f"Found {len(train_lines)} elements in {annotation_path_train}")
-    print(f"Found {len(test_lines)} elements in {annotation_path_test}")
+    #print(f"Found {len(test_lines)} elements in {annotation_path_test}")
     print(f"Found {len(valid_lines)} elements in {annotation_path_valid}")
 
+    import random
+    random.shuffle(valid_lines)
+    valid_lines = valid_lines[:150]
 
-    train_gen = data_generator_wrapper('./../../keras-yolo3/train/',train_lines, 32, input_shape, anchors, num_classes, random = False)
-    test_gen  = data_generator_wrapper('./../../keras-yolo3/test/',test_lines, 1, input_shape, anchors, num_classes, random = False)
-    valid_gen = data_generator_wrapper('./../../keras-yolo3/valid/',valid_lines, 1, input_shape, anchors, num_classes, random = False)
+    train_gen = data_generator_wrapper(f'{DATASET}/train/',train_lines, 32, input_shape, anchors, num_classes, random = False)
+    #test_gen  = data_generator_wrapper(f'{DATASET}/test/',test_lines, 1, input_shape, anchors, num_classes, random = False)
+    valid_gen = data_generator_wrapper(f'{DATASET}/valid/',valid_lines, 1, input_shape, anchors, num_classes, random = False)
+
+    
 
     #weights = './../../keras-yolo3/yolo_boats_final.h5'
 
     class args:
         def __init__ (self, model_path = check_points_path,
                             anchors_path = './../../keras-yolo3/model_data/yolo_anchors.txt',
-                            classes_path =  './../../keras-yolo3/train/_classes.txt',
+                            classes_path =  classes_path,
                             score = 0.3,
                             iou = 0.45,
                             model_image_size = (416, 416),
@@ -120,12 +123,13 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
    
     #RAGE TUNE THE YOLO MODEL
     print("=============FINE TUNING=============")
-    for _ in tqdm(range(12)):
-        dataset = next(train_gen)
-        data   = dataset[0][0]
-        image_data = data
-        #image_data = np.expand_dims(data[0], 0)  # Add batch dimension.
-        RANGER.tune_model_range(image_data, reset=False)
+    if not SKIP_INJECTION:
+        for _ in tqdm(range(0,len(train_lines)//32)):
+            dataset = next(train_gen)
+            data   = dataset[0][0]
+            image_data = data
+            #image_data = np.expand_dims(data[0], 0)  # Add batch dimension.
+            RANGER.tune_model_range(image_data, reset=False)
 
     ########################## REPORT #########################
 
@@ -199,7 +203,7 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
 
             #vanilla prediction
             yolo.yolo_model = yolo_model
-            r_image,v_out_boxes, v_out_scores, v_out_classes = yolo.detect_image(f1,y_true=False,verbose=False)
+            r_image,v_out_boxes, v_out_scores, v_out_classes = yolo.detect_image(f1,y_true=False,no_draw=True,verbose=False)
             r_image         = np.asarray(r_image)
 
             '''
@@ -220,70 +224,70 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
             assert isinstance(layer, ErrorSimulator)
             layer.set_mode(ErrorSimulatorMode.enabled)
 
-
-            for _ in range(NUM_ITERATATION_PER_SAMPLE):
-                err = ""
-                #Compute Inference with injection
-                try:
-                    r_image_faulty,out_boxes, out_scores, out_classes  = yolo.detect_image(f2,y_true=False, no_draw = True,verbose=False)
-                    r_image_faulty  = np.asarray(r_image_faulty)
-                except Exception as e:
-                    err = e
-
-                # get injected error id (cardinality, pattern)
-                curr_error_id = layer.error_ids[layer.get_history()[-1]]
-                curr_error_id = np.squeeze(curr_error_id)
-
-                #Exclude sample if some error occurred
-                if err != "":
-                    report += [Error_ID_report("valid", layer_name, sample_id, curr_error_id[0], curr_error_id[1], 
-                                            np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, err)]
-                    num_excluded += 1
-                    continue
-            
-
-                #Avoid crashing when IOU is not computabel due to "division by zero"
-                '''
-                if not EMPTY_BOX_FLAG:
+            if not SKIP_INJECTION:
+                for _ in range(NUM_ITERATATION_PER_SAMPLE):
+                    err = ""
+                    #Compute Inference with injection
                     try:
-                        iou_curr = compute_iou(v_out_boxes,v_out_classes,out_boxes, out_scores, out_classes).numpy()[0]
-                    except:
+                        r_image_faulty,out_boxes, out_scores, out_classes  = yolo.detect_image(f2,y_true=False, no_draw = True,verbose=False)
+                        r_image_faulty  = np.asarray(r_image_faulty)
+                    except Exception as e:
+                        err = e
+
+                    # get injected error id (cardinality, pattern)
+                    curr_error_id = layer.error_ids[layer.get_history()[-1]]
+                    curr_error_id = np.squeeze(curr_error_id)
+
+                    #Exclude sample if some error occurred
+                    if err != "":
+                        report += [Error_ID_report("valid", layer_name, sample_id, curr_error_id[0], curr_error_id[1], 
+                                                np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, err)]
+                        num_excluded += 1
+                        continue
+                
+
+                    #Avoid crashing when IOU is not computabel due to "division by zero"
+                    '''
+                    if not EMPTY_BOX_FLAG:
+                        try:
+                            iou_curr = compute_iou(v_out_boxes,v_out_classes,out_boxes, out_scores, out_classes).numpy()[0]
+                        except:
+                            iou_curr = np.nan
+                    else:
                         iou_curr = np.nan
-                else:
-                    iou_curr = np.nan
-                '''
+                    '''
 
-                #Compute partial injection F1 score
-                precision,recall,f1_score, tp, fp, fn = compute_F1_score(v_out_boxes,v_out_classes,out_boxes, out_classes, iou_th=0.5,verbose=False)
+                    #Compute partial injection F1 score
+                    precision,recall,f1_score, tp, fp, fn = compute_F1_score(v_out_boxes,v_out_classes,out_boxes, out_classes, iou_th=0.5,verbose=False)
 
-                I_TP += tp
-                I_FP += fp
-                I_FN += fn
+                    I_TP += tp
+                    I_FP += fp
+                    I_FN += fn
 
-                
-                #-----------CHECK IF THIS INFERENCE WAS MISCLASSIFIED---------
-                if len(v_out_boxes.shape) != len(out_boxes.shape):
-                    num_misclassification_box_shape += 1
-                elif fp != 0 or fn != 0:
-                    num_misclassification_wrong_box += 1
-                
-                num_misclassification = num_misclassification_box_shape + num_misclassification_wrong_box
+                    
+                    #-----------CHECK IF THIS INFERENCE WAS MISCLASSIFIED---------
+                    if len(v_out_boxes.shape) != len(out_boxes.shape):
+                        num_misclassification_box_shape += 1
+                    elif fp != 0 or fn != 0:
+                        num_misclassification_wrong_box += 1
+                    
+                    num_misclassification = num_misclassification_box_shape + num_misclassification_wrong_box
 
-                #-------------------------------------------------------------
-                report += [Error_ID_report("valid", layer_name, sample_id, curr_error_id[0], curr_error_id[1], 
-                                            v_out_boxes.shape[0], out_boxes.shape[0], precision, recall, f1_score, tp, fp, fn, err)]
+                    #-------------------------------------------------------------
+                    report += [Error_ID_report("valid", layer_name, sample_id, curr_error_id[0], curr_error_id[1], 
+                                                v_out_boxes.shape[0], out_boxes.shape[0], precision, recall, f1_score, tp, fp, fn, err)]
 
-                num_of_injection_comleted += 1
+                    num_of_injection_comleted += 1
 
-                robustness = 1 - (float(num_misclassification) / float(num_of_injection_comleted))
-                progress_bar.set_postfix({'Robu': robustness,'num_exluded': num_excluded,'tot_inj':num_of_injection_comleted})
-                
-                #GLOBAL F1 SCORE (Faulty prediction vs Ground Truth)
-                precision,recall,f1_score, tp, fp, fn = compute_F1_score(y_true_boxes,y_true_classes,out_boxes, out_classes, iou_th=0.5,verbose=False)
+                    robustness = 1 - (float(num_misclassification) / float(num_of_injection_comleted))
+                    progress_bar.set_postfix({'Robu': robustness,'num_exluded': num_excluded,'tot_inj':num_of_injection_comleted})
+                    
+                    #GLOBAL F1 SCORE (Faulty prediction vs Ground Truth)
+                    precision,recall,f1_score, tp, fp, fn = compute_F1_score(y_true_boxes,y_true_classes,out_boxes, out_classes, iou_th=0.5,verbose=False)
 
-                G_TP += tp
-                G_FP += fp
-                G_FN += fn
+                    G_TP += tp
+                    G_FP += fp
+                    G_FN += fn
 
 
 
@@ -291,8 +295,8 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
 
             #Compute partial vanilla F1 score
             #CHECK CONTROLLARE SE L'ORDINE DI TRUE_LAB / V_BOX è IMPORTANTE AI FINI DI FP e FN
-            precision,recall,f1_score, tp, fp, fn = compute_F1_score(y_true_boxes,y_true_classes,v_out_boxes, v_out_classes, iou_th=0.5,verbose=False)
-
+            precision,recall,f1_score, tp, fp, fn = compute_F1_score(y_true_boxes,y_true_classes,v_out_boxes, v_out_classes, iou_th=0.5,verbose=SKIP_INJECTION)
+            
             V_TP += tp
             V_FP += fp
             V_FN += fn
@@ -300,7 +304,7 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
         #Stack result of this layer on the report
         report = pd.DataFrame(report)
         #TODO uncomment this!!!
-        #report.to_csv(OUTPUT_NAME, mode = 'a', header = False)
+        report.to_csv(OUTPUT_NAME, mode = 'a', header = False)
         report = []
 
         #Compute Vanilla   F1 for this layer.
@@ -339,17 +343,17 @@ SELECTED_LAYERS = ["batch_normalization_5"]
 #CHECKPOINT_PATH = "./results/../../../keras-yolo3/yolo_boats_final.h5"
 
 if __name__ == '__main__':
-    #generate_report(CHECKPOINT_PATH,SELECTED_LAYERS,epoch=200,out_prefix="PRE_FAT")
 
-    #exit()
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint"      , action = "store")
     parser.add_argument("--epoch"           , action = "store")
     parser.add_argument("--experiment_name" , action = "store")
     parser.add_argument("--layer"           , action = "store")
     parser.add_argument("--root"            , default="./results",  action = "store")
-    parser.add_argument("--prefat",default=False,action = "store_true")
-
+    parser.add_argument("--prefat"          ,default=False,action = "store_true")
+    parser.add_argument("--dataset"        ,default="./../../keras-yolo3",action="store")
+    parser.add_argument("--skip_injection" ,default=False,action="store_true")
+    parser.add_argument("--single_f1_file" ,default=False,action="store_true")
 
     args            = parser.parse_args()
     prefix          = args.checkpoint
@@ -357,12 +361,19 @@ if __name__ == '__main__':
     experiment_name = str(args.experiment_name)
     layer           = str(args.layer)
     root_folder     = str(args.root)
-    pre_fat         = args.prefat
+    pre_fat         = bool(args.prefat)
+    DATASET         = str(args.dataset)
+    SKIP_INJECTION  = bool(args.skip_injection)
+    SINGLE_F1_FILE  = str(args.single_f1_file)
 
     if pre_fat:
-        CHECKPOINT_PATH = "./results/../../../keras-yolo3/yolo_boats_final.h5"
+        if prefix == None:
+            CHECKPOINT_PATH = "./results/../../../keras-yolo3/yolo_boats_final.h5"
+        else:
+            CHECKPOINT_PATH = prefix
+
         SELECTED_LAYERS = [layer]
-        generate_report(CHECKPOINT_PATH,SELECTED_LAYERS,epoch=epoch,out_prefix=experiment_name)
+        generate_report(CHECKPOINT_PATH,SELECTED_LAYERS,epoch=epoch,out_prefix=experiment_name,DATASET=DATASET,SKIP_INJECTION=SKIP_INJECTION,SINGLE_F1_FILE=SINGLE_F1_FILE)
         exit()
     
     
@@ -376,4 +387,4 @@ if __name__ == '__main__':
             CHECKPOINT_PATH =  CHECKPOINT_PATH =  f"{root_folder}/{prefix}/{file_name}"
             break
     
-    generate_report(CHECKPOINT_PATH,SELECTED_LAYERS,epoch=epoch,out_prefix=experiment_name,root_folder=root_folder)
+    generate_report(CHECKPOINT_PATH,SELECTED_LAYERS,epoch=epoch,out_prefix=experiment_name,root_folder=root_folder,DATASET=DATASET,SKIP_INJECTION=SKIP_INJECTION,SINGLE_F1_FILE=SINGLE_F1_FILE)

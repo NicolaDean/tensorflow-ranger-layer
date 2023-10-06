@@ -29,7 +29,6 @@ train_all_model(){
     
 }
 
-
 #LAUNCH EXPERIMENT ON A SPECIFIC LAYER AS FOLLOW
 
 #train_all_model "batch_normalization_2"

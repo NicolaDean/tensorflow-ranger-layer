@@ -4,6 +4,7 @@ from .training.model_classes_init import *
 from .training.ranger_helper import *
 
 from .callbacks.random_injection import ClassesSingleLayerInjection
+from .callbacks.layer_selection_policy import ClassesLayerPolicy 
 from .callbacks.metrics_obj import Obj_metrics_callback, compute_validation_f1
 from .callbacks.mixed_generator_v2 import MixedGeneratorV2Obj
 from .callbacks.custom_loss_v2_golden_pred import CustomLossV2VanillaPredictor
@@ -60,12 +61,24 @@ injection_points += ["batch_normalization_25", "batch_normalization_42", "batch_
 injection_points = []
 
 
-def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGHT_NAME=FINAL_WEIGHT_NAME,injection_points=injection_points,GOLDEN_LABEL = False, MIXED_LABEL = False, MIXED_LABEL_V2 = False, MIXED_LABEL_V3 = False,MIXED_LABEL_V4 = False,GOLDEN_GT = False, injection_frequency = 1.0, switch_prob = 0.5, num_epochs_switch = 1,custom_loss=False,custom_loss_v2=False):
+def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGHT_NAME=FINAL_WEIGHT_NAME,injection_points=injection_points,GOLDEN_LABEL = False, MIXED_LABEL = False, MIXED_LABEL_V2 = False, MIXED_LABEL_V3 = False,MIXED_LABEL_V4 = False,GOLDEN_GT = False, injection_frequency = 1.0, switch_prob = 0.5, num_epochs_switch = 1,custom_loss=False,custom_loss_v2=False,MULTI_LAYERS_FLAG=False,UNIFORM_LAYER_POLICY=False,DATASET="./../../keras-yolo3",VANILLA_TRAINING=False):
 
-    root, log_dir, model_dir = init_path(root=f'./results/{injection_points[0]}/',EXPERIMENT_NAME=EXPERIMENT_NAME)
+    annotation_path_train   = f'{DATASET}/train/_annotations.txt'
+    annotation_path_valid   = f'{DATASET}/valid/_annotations.txt' 
+    classes_path            = f'{DATASET}/train/_classes.txt'         
+    anchors_path            = f'{DATASET}/model_data/yolo_anchors.txt'
+
+    if not os.path.exists(DATASET):
+        print("Please select a valid Dataset path")
+        exit()
+
+    if not MULTI_LAYERS_FLAG:
+        root, log_dir, model_dir = init_path(root=f'./results/{injection_points[0]}/',EXPERIMENT_NAME=EXPERIMENT_NAME)
+    else:
+        root, log_dir, model_dir = init_path(root=f'./results/{EXPERIMENT_NAME}/',EXPERIMENT_NAME=EXPERIMENT_NAME)
 
     #Build a YOLO model with CLASSES and RANGER Integrated [TODO pass here the list of injection points]
-    model, CLASSES, RANGER, vanilla_body,model_body = build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,injection_points,classes_enable=True,custom_loss=custom_loss,custom_loss_v2=custom_loss_v2)
+    model, CLASSES, RANGER, vanilla_body,model_body = build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,injection_points,classes_enable=(not VANILLA_TRAINING),custom_loss=custom_loss,custom_loss_v2=custom_loss_v2)
     checkpoint_period = 10
 
     #retrieve the f1score target in case of mixedV3
@@ -87,21 +100,29 @@ def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGH
         golden_gen_train,train_size  = get_vanilla_generator('./../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True, keep_label=False)
         golden_gen_valid,valid_size  = get_vanilla_generator('./../../keras-yolo3/valid/',batch_size,classes_path,anchors_path,input_shape,random=True, keep_label= False)
 
-    #Tune ranger layers
-    ranger_domain_tuning(RANGER,golden_gen_train,int(train_size/256))
+    if not VANILLA_TRAINING:
+        #Tune ranger layers
+        ranger_domain_tuning(RANGER,golden_gen_train,int(train_size/batch_size))
 
-
-    
     #Declare injection point selection callback
-    injection_layer_callback  = ClassesSingleLayerInjection(CLASSES,injection_points[0],extraction_frequency=injection_frequency,use_batch=True)
-    reduce_lr                 = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3, verbose=1, min_lr=0.000001)
+    if MULTI_LAYERS_FLAG:
+        #TODO => SUBSTITUTE WITH THE MULTILAYER INJECTION CALLBACK AND REWRITE THE CALLBACK WITH CLEANER CODE
+        injection_layer_callback  = ClassesLayerPolicy(CLASSES,extraction_frequency=injection_frequency,use_batch=True,uniform_extraction=UNIFORM_LAYER_POLICY)
+    else:
+        injection_layer_callback  = ClassesSingleLayerInjection(CLASSES,injection_points[0],extraction_frequency=injection_frequency,use_batch=True)
+
+    reduce_lr                 = ReduceLROnPlateau(monitor='va_loss', factor=0.1, patience=3, verbose=1, min_lr=0.000001)
     f1_score                  = Obj_metrics_callback(model_body,'./../../keras-yolo3/valid/',classes_path,anchors_path,input_shape)
 
 
     checkpoint = ModelCheckpoint(log_dir +"/"+ EXPERIMENT_NAME + '-ep{epoch:03d}.h5',
             monitor='val_loss', save_weights_only=True, save_best_only=False, period=checkpoint_period)
 
-    callbacks_list = [reduce_lr,f1_score,injection_layer_callback,checkpoint]
+    if not VANILLA_TRAINING:
+        callbacks_list = [reduce_lr,f1_score,injection_layer_callback,checkpoint]
+    else:
+        reduce_lr      = ReduceLROnPlateau(monitor='va_loss', factor=0.1, patience=3, verbose=1)
+        callbacks_list = [reduce_lr,f1_score]
 
     if MIXED_LABEL:
         #Mixed labels 
@@ -128,7 +149,11 @@ def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGH
         callbacks_list.append(Obj_metrics_callback(model_body,'./../../keras-yolo3/valid/',classes_path,anchors_path,input_shape, CLASSES = CLASSES, mixed_callback = callback_obj))
         callbacks_list.remove(injection_layer_callback)
         callbacks_list.append(ClassesSingleLayerInjection(CLASSES,injection_points[0],extraction_frequency=injection_frequency,use_batch=True, mixed_callback= callback_obj))
-
+    elif custom_loss_v2:
+        callbacks_list.remove(checkpoint)
+        callbacks_list.remove(reduce_lr)
+        reduce_lr                 = ReduceLROnPlateau(monitor='loss_tot', factor=0.1, patience=3, verbose=1, min_lr=0.000001)
+        callbacks_list.append(reduce_lr)
 
     '''
     elif custom_loss_v2:
@@ -163,9 +188,13 @@ def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGH
 
         ######END TO REMOVE#####
 
+    if MULTI_LAYERS_FLAG:
+        file_name = model_dir + EXPERIMENT_NAME + "_" +str(injection_frequency)+"_" + injection_points[0] + ".h5"
+    else:
+        file_name = model_dir + EXPERIMENT_NAME + "_" +str(injection_frequency) + ".h5"
 
-    model_body.save_weights(model_dir + EXPERIMENT_NAME + "_" +str(injection_frequency)+"_" + injection_points,save_format='h5')
-    loaded_model = model_body.load_weights(model_dir + FINAL_WEIGHT_NAME)
+    model_body.save_weights(file_name,save_format='h5')
+    loaded_model = model_body.load_weights(file_name)
 
     #custom_objects={'Ranger':Ranger,'ErrorSimulator':ErrorSimulator}
     #model = load_model('temp.h5', custom_objects={'Conv2DIMC':Conv2DIMC}) 

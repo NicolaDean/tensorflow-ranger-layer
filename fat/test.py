@@ -4,6 +4,11 @@ from utils.training.model_classes_init import *
 from utils.callbacks.layer_selection_policy import ClassesLayerPolicy
 from utils.callbacks.metrics_obj import Obj_metrics_callback
 
+
+from utils.training.dataset import download_dataset
+
+download_dataset("pedestrian")
+exit()
 #Declare path to dataset and hyperparameters
 batch_size  = 32
 input_shape = (416,416) # multiple of 32, hw

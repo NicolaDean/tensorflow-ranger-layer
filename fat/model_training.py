@@ -8,15 +8,18 @@ from utils.callbacks.metrics_obj import Obj_metrics_callback
 
 
 #Declare path to dataset and hyperparameters
-EPOCHS                  = 1
-EPOCHS_FINE_TUNING      = 1
+EPOCHS                  = 100
+EPOCHS_FINE_TUNING      = 100
 MODEL_NAME              = "./results/test"
+
+DATASET = "./../../keras-yolo3"
+DATASET = "./Self-Driving-Car-3"
 
 batch_size  = 16
 input_shape = (416,416) # multiple of 32, hw
-annotation_path_train   = './../../keras-yolo3/train/_annotations.txt'
-annotation_path_valid   = './../../keras-yolo3/valid/_annotations.txt' 
-classes_path            = './../../keras-yolo3/train/_classes.txt'         
+annotation_path_train   = f'{DATASET}/train/_annotations.txt'
+annotation_path_valid   = f'{DATASET}/valid/_annotations.txt' 
+classes_path            = f'{DATASET}/train/_classes.txt'         
 anchors_path            = './../../keras-yolo3/model_data/yolo_anchors.txt'
 WEIGHT_FILE_PATH        = './../../keras-yolo3/model_data/yolo.h5'
 #WEIGHT_FILE_PATH        = './results/acquarium_final_v2.h5'
@@ -26,15 +29,15 @@ injection_points=[]
 model, CLASSES, RANGER, vanilla_body,model_body = build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,injection_points,classes_enable=False,freeze_body=True)
 #vanilla_body.summary()
 
-golden_gen_train,train_size  = get_vanilla_generator('./../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True)
-golden_gen_valid,valid_size  = get_vanilla_generator('./../../keras-yolo3/valid/',batch_size,classes_path,anchors_path,input_shape,random=False)
+golden_gen_train,train_size = get_vanilla_generator(f'{DATASET}/train/',batch_size,classes_path,anchors_path,input_shape,random=True)
+golden_gen_valid,valid_size = get_vanilla_generator(f'{DATASET}/valid/',batch_size,classes_path,anchors_path,input_shape,random=False)
 
 #Declare injection point selection callback
 reduce_lr                 = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3, verbose=1)
-f1_score                  = Obj_metrics_callback(model_body,'./../../keras-yolo3/valid/',classes_path,anchors_path,input_shape,frequency=10)
+f1_score                  = Obj_metrics_callback(model_body,f'{DATASET}/valid/',classes_path,anchors_path,input_shape,frequency=10)
 early_stopping            = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=1)
 
-callbacks_list = [reduce_lr,f1_score,early_stopping]
+callbacks_list = [reduce_lr,early_stopping]
 
 #Start training process
 print('Train on {} samples, val on {} samples, with batch size {}.'.format(train_size, valid_size, batch_size))
