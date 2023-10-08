@@ -107,6 +107,7 @@ class CustomLossModel(tf.keras.Model):
 
     def __init__(self,yolo_body=None,CLASSES=None):
         super(CustomLossModel, self).__init__()
+        #self.name="custom_loss_layer"
         self.yolo_body = yolo_body
         self.CLASSES   = CLASSES
         self.loss_tracker       = tf.keras.metrics.Mean(name="loss_tot")
@@ -122,6 +123,28 @@ class CustomLossModel(tf.keras.Model):
     def call(self, inputs, *args, **kwargs):
        return self.model(inputs)
 
+    def get_custom_checkpoint(period,model,path):
+        class CheckpointCustomLoss(tf.keras.callbacks.Callback):
+            def __init__(self):
+                self.period = period
+                self.count  = 0
+                self.model  = model
+
+            def on_epoch_end(self, epoch, logs=None):
+                self.count += 1
+
+                if self.count >= period:
+                    self.model.save_weights(path,save_format='h5')
+                    self.count = 0
+                
+
+        return CheckpointCustomLoss()
+
+    def set_model_classes(self,CLASSES,yolo_body,input):
+        self.CLASSES        = CLASSES
+        self.model          = yolo_body
+        self.curr_yolo_out  = self.model(input)
+        self.first_run.assign(tf.constant(1))
     def train_step(self, data):
         # Unpack the data. Its structure depends on your model and
         # on what you pass to `fit()`.
@@ -130,15 +153,16 @@ class CustomLossModel(tf.keras.Model):
         with tf.GradientTape() as tape:
             loss_inj = self(x, training=True)  # Forward pass Injection 
             dx_inj   = tape.gradient(loss_inj, self.trainable_variables)
-            self.optimizer.apply_gradients(zip(dx_inj, self.trainable_variables))
 
         self.CLASSES.disable_all(verbose=False)         # Disable Classes
 
         with tf.GradientTape() as tape:
             loss_gt  = self(x, training=True)  # Forward pass Injection 
             dx_gt    = tape.gradient(loss_gt, self.trainable_variables)
-            self.optimizer.apply_gradients(zip(dx_gt , self.trainable_variables))
-       
+        
+        self.optimizer.apply_gradients(zip(dx_gt + dx_inj , self.trainable_variables))
+        #self.optimizer.apply_gradients(zip(, self.trainable_variables))
+
         loss = loss_gt + loss_inj
         
         # Update weights
@@ -210,4 +234,19 @@ class CustomLossModel(tf.keras.Model):
         
         self.optimizer.apply_gradients(zip((dx_gt +  dx_inj), self.trainable_variables))
     
+    '''
+
+
+    '''
+    with tf.GradientTape() as tape:
+            loss_inj = self(x, training=True)  # Forward pass Injection 
+            dx_inj   = tape.gradient(loss_inj, self.trainable_variables)
+            self.optimizer.apply_gradients(zip(dx_inj, self.trainable_variables))
+
+        self.CLASSES.disable_all(verbose=False)         # Disable Classes
+
+        with tf.GradientTape() as tape:
+            loss_gt  = self(x, training=True)  # Forward pass Injection 
+            dx_gt    = tape.gradient(loss_gt, self.trainable_variables)
+            self.optimizer.apply_gradients(zip(dx_gt , self.trainable_variables))
     '''

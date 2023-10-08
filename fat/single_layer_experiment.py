@@ -52,6 +52,7 @@ if __name__ == '__main__':
     parser.add_argument("--unif_stack_policy", default=False,action='store_true')
     parser.add_argument("--vanilla_training",default=False,action='store_true')
     parser.add_argument("--dataset_path"    ,default="./../../keras-yolo3/",action='store')
+    parser.add_argument("--init_model"      ,default="./../../keras-yolo3/yolo_boats_final.h5",action='store')
 
     args            = parser.parse_args()
     prefix          = args.golden_label
@@ -76,6 +77,7 @@ if __name__ == '__main__':
     UNIFORM_LAYER_POLICY= bool(args.unif_stack_policy)
     VANILLA_TRAINING    = bool(args.vanilla_training)
     DATASET             = str(args.dataset_path)
+    WEIGHT_FILE_PATH    = str(args.init_model)
     
 
     if not MULTI_LAYERS_FLAG:
@@ -104,5 +106,6 @@ if __name__ == '__main__':
                        MULTI_LAYERS_FLAG = MULTI_LAYERS_FLAG,
                        UNIFORM_LAYER_POLICY=UNIFORM_LAYER_POLICY,
                        DATASET=DATASET,
-                       VANILLA_TRAINING=VANILLA_TRAINING)
+                       VANILLA_TRAINING=VANILLA_TRAINING,
+                       WEIGHT_FILE_PATH=WEIGHT_FILE_PATH)
     

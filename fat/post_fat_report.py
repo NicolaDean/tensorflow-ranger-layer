@@ -350,10 +350,10 @@ if __name__ == '__main__':
     parser.add_argument("--experiment_name" , action = "store")
     parser.add_argument("--layer"           , action = "store")
     parser.add_argument("--root"            , default="./results",  action = "store")
-    parser.add_argument("--prefat"          ,default=False,action = "store_true")
-    parser.add_argument("--dataset"        ,default="./../../keras-yolo3",action="store")
-    parser.add_argument("--skip_injection" ,default=False,action="store_true")
-    parser.add_argument("--single_f1_file" ,default=False,action="store_true")
+    parser.add_argument("--prefat"          , default=False,action = "store_true")
+    parser.add_argument("--dataset"        ,  default="./../../keras-yolo3",action="store")
+    parser.add_argument("--skip_injection" ,  default=False,action="store_true")
+    parser.add_argument("--single_f1_file" ,  default=False,action="store_true")
 
     args            = parser.parse_args()
     prefix          = args.checkpoint
@@ -365,6 +365,8 @@ if __name__ == '__main__':
     DATASET         = str(args.dataset)
     SKIP_INJECTION  = bool(args.skip_injection)
     SINGLE_F1_FILE  = str(args.single_f1_file)
+    
+    print(CHECKPOINT_PATH)
 
     if pre_fat:
         if prefix == None:
@@ -381,10 +383,11 @@ if __name__ == '__main__':
 
     while len(epoch) < 3:
         epoch = "0"+epoch
-
+    
+    
     for file_name in os.listdir(f"{root_folder}/{prefix}/"):
         if "-ep"+epoch in file_name:
-            CHECKPOINT_PATH =  CHECKPOINT_PATH =  f"{root_folder}/{prefix}/{file_name}"
+            CHECKPOINT_PATH =  f"{root_folder}/{prefix}/{file_name}"
             break
     
     generate_report(CHECKPOINT_PATH,SELECTED_LAYERS,epoch=epoch,out_prefix=experiment_name,root_folder=root_folder,DATASET=DATASET,SKIP_INJECTION=SKIP_INJECTION,SINGLE_F1_FILE=SINGLE_F1_FILE)

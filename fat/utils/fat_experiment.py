@@ -61,12 +61,12 @@ injection_points += ["batch_normalization_25", "batch_normalization_42", "batch_
 injection_points = []
 
 
-def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGHT_NAME=FINAL_WEIGHT_NAME,injection_points=injection_points,GOLDEN_LABEL = False, MIXED_LABEL = False, MIXED_LABEL_V2 = False, MIXED_LABEL_V3 = False,MIXED_LABEL_V4 = False,GOLDEN_GT = False, injection_frequency = 1.0, switch_prob = 0.5, num_epochs_switch = 1,custom_loss=False,custom_loss_v2=False,MULTI_LAYERS_FLAG=False,UNIFORM_LAYER_POLICY=False,DATASET="./../../keras-yolo3",VANILLA_TRAINING=False):
+def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGHT_NAME=FINAL_WEIGHT_NAME,injection_points=injection_points,GOLDEN_LABEL = False, MIXED_LABEL = False, MIXED_LABEL_V2 = False, MIXED_LABEL_V3 = False,MIXED_LABEL_V4 = False,GOLDEN_GT = False, injection_frequency = 1.0, switch_prob = 0.5, num_epochs_switch = 1,custom_loss=False,custom_loss_v2=False,MULTI_LAYERS_FLAG=False,UNIFORM_LAYER_POLICY=False,DATASET="./../../keras-yolo3",VANILLA_TRAINING=False,WEIGHT_FILE_PATH=WEIGHT_FILE_PATH):
 
     annotation_path_train   = f'{DATASET}/train/_annotations.txt'
     annotation_path_valid   = f'{DATASET}/valid/_annotations.txt' 
     classes_path            = f'{DATASET}/train/_classes.txt'         
-    anchors_path            = f'{DATASET}/model_data/yolo_anchors.txt'
+    anchors_path            = f'./../../keras-yolo3/model_data/yolo_anchors.txt'
 
     if not os.path.exists(DATASET):
         print("Please select a valid Dataset path")
@@ -151,9 +151,12 @@ def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGH
         callbacks_list.append(ClassesSingleLayerInjection(CLASSES,injection_points[0],extraction_frequency=injection_frequency,use_batch=True, mixed_callback= callback_obj))
     elif custom_loss_v2:
         callbacks_list.remove(checkpoint)
+        #checkpoint = CustomLossModel.get_custom_checkpoint(period=1,model=model_body,path=log_dir +"/"+ EXPERIMENT_NAME + '-ep{epoch:03d}.h5')
         callbacks_list.remove(reduce_lr)
         reduce_lr                 = ReduceLROnPlateau(monitor='loss_tot', factor=0.1, patience=3, verbose=1, min_lr=0.000001)
         callbacks_list.append(reduce_lr)
+        #callbacks_list.append(checkpoint)
+        
 
     '''
     elif custom_loss_v2:
@@ -188,7 +191,7 @@ def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGH
 
         ######END TO REMOVE#####
 
-    if MULTI_LAYERS_FLAG:
+    if not MULTI_LAYERS_FLAG: 
         file_name = model_dir + EXPERIMENT_NAME + "_" +str(injection_frequency)+"_" + injection_points[0] + ".h5"
     else:
         file_name = model_dir + EXPERIMENT_NAME + "_" +str(injection_frequency) + ".h5"
