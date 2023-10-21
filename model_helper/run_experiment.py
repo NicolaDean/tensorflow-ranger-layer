@@ -32,10 +32,9 @@ def add_classes_to_model(model,layer_name,NUM_INJECTIONS=128):
     #classes_model.predict(x_val)
     classes_model.summary()
     #keras.utils.plot_model(classes_model,to_file="classes.png" ,show_shapes=True)
-    CLASSES.disable_all() #Disable all fault injection points
+    CLASSES.disable_all() #Disable all fault injection pointss
 
     return CLASSES
-
 
 def add_ranger_classes_to_model(model,layer_name,NUM_INJECTIONS=128,use_classes_ranging=False,range_tuning_fn = None,X=None):
     #--------------------------------------------------------------------------------------------------
