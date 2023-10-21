@@ -30,12 +30,19 @@ report "conv2d_6"
 report "conv2d_7"
 report "conv2d_8"
 report "conv2d_9"
+<<<<<<< HEAD
 
+=======
+>>>>>>> a8756eadcf575c616b01f476ea98821d843e543c
 report "conv2d_20"
 report "conv2d_30"
 report "conv2d_40"
 report "conv2d_50"
 report "conv2d_60"
 report "conv2d_70"
+<<<<<<< HEAD
 "
+=======
+
+>>>>>>> a8756eadcf575c616b01f476ea98821d843e543c
 

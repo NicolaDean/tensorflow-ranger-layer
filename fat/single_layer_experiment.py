@@ -1,10 +1,10 @@
 import tensorflow as tf
-
+'''
 gpu = tf.config.list_physical_devices('GPU')
 if len(gpu) != 0:
     print("LIMIT GPU GROWTH")
     tf.config.experimental.set_memory_growth(gpu[0], True) #limits gpu memory
-
+'''
 from utils.fat_experiment import *
 import sys
 import argparse
@@ -53,6 +53,7 @@ if __name__ == '__main__':
     parser.add_argument("--vanilla_training",default=False,action='store_true')
     parser.add_argument("--dataset_path"    ,default="./../../keras-yolo3/",action='store')
     parser.add_argument("--init_model"      ,default="./../../keras-yolo3/yolo_boats_final.h5",action='store')
+    parser.add_argument("--extraction_type" ,default=1,action='store')
 
     args            = parser.parse_args()
     prefix          = args.golden_label
@@ -78,7 +79,20 @@ if __name__ == '__main__':
     VANILLA_TRAINING    = bool(args.vanilla_training)
     DATASET             = str(args.dataset_path)
     WEIGHT_FILE_PATH    = str(args.init_model)
+    extraction_type     = int(args.extraction_type)
     
+    
+    if extraction_type >= 2:
+        injection_points = []
+        for i in range(3,10):
+            injection_points += ["conv2d_"+str(i)]
+            injection_points += ["batch_normalization_"+str(i)]
+
+        for i in range(2,8):
+            injection_points += ["conv2d_"+str(i*10)]
+            injection_points += ["batch_normalization_"+str(i*10)]
+
+        EPOCHS = len(injection_points)*5 + 1
 
     if not MULTI_LAYERS_FLAG:
         injection_points    = [LAYER]
@@ -107,5 +121,6 @@ if __name__ == '__main__':
                        UNIFORM_LAYER_POLICY=UNIFORM_LAYER_POLICY,
                        DATASET=DATASET,
                        VANILLA_TRAINING=VANILLA_TRAINING,
-                       WEIGHT_FILE_PATH=WEIGHT_FILE_PATH)
+                       WEIGHT_FILE_PATH=WEIGHT_FILE_PATH,
+                       extraction_type=extraction_type)
     

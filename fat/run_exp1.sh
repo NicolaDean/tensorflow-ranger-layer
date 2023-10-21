@@ -37,7 +37,7 @@ gen_report(){
 }
 
 #gen_report conv2d_7 NO_VANILLA
-gen_report batch_normalization_25
+#gen_report batch_normalization_25
 gen_report batch_normalization_9
 
 

@@ -23,15 +23,16 @@ CLASSES_MODULE_PATH = "/../"
 directory = str(pathlib.Path(__file__).parent.parent.absolute())
 sys.path.append(directory + CLASSES_MODULE_PATH)
 from .recursive_models import *
-from classes import *
-import classes
+from classes_dev import *
+import classes_dev  #CLASSES_DEV UPDATE
 
-original_models_path = str(pathlib.Path(classes.__file__).parent.absolute())
+original_models_path = str(pathlib.Path(classes_dev.__file__).parent.absolute())#CLASSES_DEV UPDATE
 
 
 class CLASSES_MODELS_PATH:
     models      = original_models_path + "/models"
     models_warp = original_models_path + "/models_warp"
+    models_warp = original_models_path + "/models"#CLASSES_DEV UPDATE
 
 
 def gen_batch(x,y,batch_size):
@@ -59,7 +60,7 @@ def count_misclassification(predictions,labels, error_ids):
 This is an HELPER class to easily work with the CLASSES framwork on existing models (without having to write boilerplate code by hand)
 '''
 class CLASSES_HELPER():
-    def __init__(self,model:tf.keras.Model) -> OperatorType:
+    def __init__(self,model:tf.keras.Model):
         self.model              = model #Model that we want to test.
         self.injection_points   = []
         self.misc_mask          = None  #Contain a mask with 0 if vanilla model classify wrong, 1 if vanilla model classify ok
@@ -68,7 +69,7 @@ class CLASSES_HELPER():
         self.model = model
     
     def elaborate_layer(self,l,num_of_injection_sites):
-            CLASSES_MODEL_TYPE = CLASSES_HELPER.check_classes_layer_compatibility(l)
+            CLASSES_MODEL_TYPE = CLASSES_HELPER.check_classes_layer_compatibility_dev(l)#CLASSES_DEV UPDATE
 
             if CLASSES_MODEL_TYPE != None:
                 
@@ -115,7 +116,7 @@ class CLASSES_HELPER():
     def convert_model_v2(self,num_of_injection_sites):
         
         def match_cond(layer):
-            return CLASSES_HELPER.check_classes_layer_compatibility(layer) != None
+            return CLASSES_HELPER.check_classes_layer_compatibility_dev(layer) != None #CLASSES_DEV UPDATE
         
         def classes_layer_factory(layer):
             return self.elaborate_layer(layer,num_of_injection_sites)
@@ -148,9 +149,23 @@ class CLASSES_HELPER():
             layer.set_mode(mode)
 
 
-    '''
+    def check_classes_layer_compatibility_dev(layer):
+        if isinstance(layer,keras.layers.BatchNormalization):
+            return "batchnorm"
+        elif isinstance(layer,tf.compat.v1.keras.layers.BatchNormalization):
+            return "batchnorm"
+        elif isinstance(layer,keras.layers.MaxPooling2D):
+            return "maxpool"
+        elif isinstance(layer,keras.layers.AveragePooling2D):
+            return "avgpool"
+        elif isinstance(layer,keras.layers.Conv2D):
+            return "conv_gemm"
+        else:
+            return None
+    
+    '''#CLASSES_DEV_UPDATE
     Return the most compatible error model for the input layer
-    '''
+    
     def check_classes_layer_compatibility(layer):
         #TODO => ADD ALL LAYERS
         if isinstance(layer,keras.layers.BatchNormalization):
@@ -183,7 +198,8 @@ class CLASSES_HELPER():
         #TODO ADD OTHER CLASSES LAYER
         else:
             return None
-    
+    '''
+
     '''
     Take in input a classic CNN and add CLASSES ErrorSimulator layer for each Compatible Layer (All Layer for which we have an error Model)
     '''

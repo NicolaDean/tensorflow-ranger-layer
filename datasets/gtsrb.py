@@ -59,6 +59,7 @@ def load_train():
 
     x_train, x_val, y_train, y_val = train_test_split(image_data, image_labels, test_size=0.3, random_state=42, shuffle=True)
 
+    '''
     x_train = x_train/255 
     x_val = x_val/255
 
@@ -69,11 +70,11 @@ def load_train():
 
     y_train = keras.utils.to_categorical(y_train, NUM_CATEGORIES)
     y_val = keras.utils.to_categorical(y_val, NUM_CATEGORIES)
-
+    '''
     print(y_train.shape)
     print(y_val.shape)
 
-    return x_train, x_val, y_train, y_val
+    return x_train, x_val[:500], y_train, y_val[:500]
 
 def load_test():
     data = pd.read_csv("../datasets/GTSRB/Test.csv")

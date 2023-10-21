@@ -1,9 +1,13 @@
 ./classes
 Self-Driving-Car-3
 classes
+classes-dev
 datasets/GTSRB
 datasets/YOLO
 datasets/steering_wheel
+fat/pedestrian_ssd
+fat/results
+fat/test
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

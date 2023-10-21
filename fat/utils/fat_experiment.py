@@ -4,7 +4,7 @@ from .training.model_classes_init import *
 from .training.ranger_helper import *
 
 from .callbacks.random_injection import ClassesSingleLayerInjection
-from .callbacks.layer_selection_policy import ClassesLayerPolicy 
+from .callbacks.layer_selection_policy import * 
 from .callbacks.metrics_obj import Obj_metrics_callback, compute_validation_f1
 from .callbacks.mixed_generator_v2 import MixedGeneratorV2Obj
 from .callbacks.custom_loss_v2_golden_pred import CustomLossV2VanillaPredictor
@@ -61,17 +61,21 @@ injection_points += ["batch_normalization_25", "batch_normalization_42", "batch_
 injection_points = []
 
 
-def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGHT_NAME=FINAL_WEIGHT_NAME,injection_points=injection_points,GOLDEN_LABEL = False, MIXED_LABEL = False, MIXED_LABEL_V2 = False, MIXED_LABEL_V3 = False,MIXED_LABEL_V4 = False,GOLDEN_GT = False, injection_frequency = 1.0, switch_prob = 0.5, num_epochs_switch = 1,custom_loss=False,custom_loss_v2=False,MULTI_LAYERS_FLAG=False,UNIFORM_LAYER_POLICY=False,DATASET="./../../keras-yolo3",VANILLA_TRAINING=False,WEIGHT_FILE_PATH=WEIGHT_FILE_PATH):
+def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGHT_NAME=FINAL_WEIGHT_NAME,injection_points=injection_points,GOLDEN_LABEL = False, MIXED_LABEL = False, MIXED_LABEL_V2 = False, MIXED_LABEL_V3 = False,MIXED_LABEL_V4 = False,GOLDEN_GT = False, injection_frequency = 1.0, switch_prob = 0.5, num_epochs_switch = 1,custom_loss=False,custom_loss_v2=False,MULTI_LAYERS_FLAG=False,UNIFORM_LAYER_POLICY=False,DATASET="./../../keras-yolo3",VANILLA_TRAINING=False,WEIGHT_FILE_PATH=WEIGHT_FILE_PATH,extraction_type=UNIFORM_EXTRACTION):
 
     annotation_path_train   = f'{DATASET}/train/_annotations.txt'
     annotation_path_valid   = f'{DATASET}/valid/_annotations.txt' 
     classes_path            = f'{DATASET}/train/_classes.txt'         
     anchors_path            = f'./../../keras-yolo3/model_data/yolo_anchors.txt'
 
+    print(DATASET)
+    print(WEIGHT_FILE_PATH)
+
     if not os.path.exists(DATASET):
         print("Please select a valid Dataset path")
         exit()
 
+    print()
     if not MULTI_LAYERS_FLAG:
         root, log_dir, model_dir = init_path(root=f'./results/{injection_points[0]}/',EXPERIMENT_NAME=EXPERIMENT_NAME)
     else:
@@ -83,7 +87,7 @@ def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGH
 
     #retrieve the f1score target in case of mixedV3
     if MIXED_LABEL_V3 or MIXED_LABEL_V4:
-        golden_gen_valid,valid_size         = get_vanilla_generator('./../../keras-yolo3/valid/',1,classes_path,anchors_path,input_shape,random=False, keep_label= True)
+        golden_gen_valid,valid_size         = get_vanilla_generator(f'{DATASET}/valid/',1,classes_path,anchors_path,input_shape,random=False, keep_label= True)
         precision,recall,f1_target,Accuracy = compute_validation_f1(vanilla_body,golden_gen_valid,valid_size,get_anchors(anchors_path), len(get_classes(classes_path)), input_shape)
         print("F1 target = {}".format(f1_target))
         checkpoint_period = 12 #TODO MAKE PARAMETRIZED
@@ -93,12 +97,12 @@ def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGH
     #Get Dataset Generator
     if GOLDEN_LABEL:
         #Golden Labels
-        golden_gen_train,train_size  = get_golden_generator(vanilla_body,'./../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True)
-        golden_gen_valid,valid_size  = get_golden_generator(vanilla_body,'./../../keras-yolo3/valid/',batch_size,classes_path,anchors_path,input_shape,random=True)
+        golden_gen_train,train_size  = get_golden_generator(vanilla_body,f'{DATASET}/train/',batch_size,classes_path,anchors_path,input_shape,random=True)
+        golden_gen_valid,valid_size  = get_golden_generator(vanilla_body,f'{DATASET}/valid/',batch_size,classes_path,anchors_path,input_shape,random=True)
     else:
         #Classic Dataset Label
-        golden_gen_train,train_size  = get_vanilla_generator('./../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True, keep_label=False)
-        golden_gen_valid,valid_size  = get_vanilla_generator('./../../keras-yolo3/valid/',batch_size,classes_path,anchors_path,input_shape,random=True, keep_label= False)
+        golden_gen_train,train_size  = get_vanilla_generator(f'{DATASET}/train/',batch_size,classes_path,anchors_path,input_shape,random=True, keep_label=False)
+        golden_gen_valid,valid_size  = get_vanilla_generator(f'{DATASET}/valid/',batch_size,classes_path,anchors_path,input_shape,random=True, keep_label= False)
 
     if not VANILLA_TRAINING:
         #Tune ranger layers
@@ -107,12 +111,12 @@ def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGH
     #Declare injection point selection callback
     if MULTI_LAYERS_FLAG:
         #TODO => SUBSTITUTE WITH THE MULTILAYER INJECTION CALLBACK AND REWRITE THE CALLBACK WITH CLEANER CODE
-        injection_layer_callback  = ClassesLayerPolicy(CLASSES,extraction_frequency=injection_frequency,use_batch=True,uniform_extraction=UNIFORM_LAYER_POLICY)
+        injection_layer_callback  = ClassesLayerPolicy(CLASSES,extraction_frequency=injection_frequency,use_batch=True,extraction_type=extraction_type)
     else:
         injection_layer_callback  = ClassesSingleLayerInjection(CLASSES,injection_points[0],extraction_frequency=injection_frequency,use_batch=True)
 
     reduce_lr                 = ReduceLROnPlateau(monitor='va_loss', factor=0.1, patience=3, verbose=1, min_lr=0.000001)
-    f1_score                  = Obj_metrics_callback(model_body,'./../../keras-yolo3/valid/',classes_path,anchors_path,input_shape)
+    f1_score                  = Obj_metrics_callback(model_body,f'{DATASET}/valid/',classes_path,anchors_path,input_shape)
 
 
     checkpoint = ModelCheckpoint(log_dir +"/"+ EXPERIMENT_NAME + '-ep{epoch:03d}.h5',
@@ -126,27 +130,27 @@ def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGH
 
     if MIXED_LABEL:
         #Mixed labels 
-        golden_gen_train, train_size = get_mixed_generator(vanilla_body, './../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True, switch_prob = switch_prob)
-        golden_gen_valid,valid_size  = get_mixed_generator(vanilla_body,'./../../keras-yolo3/valid/',batch_size,classes_path,anchors_path,input_shape,random=True, switch_prob = switch_prob)
+        golden_gen_train, train_size = get_mixed_generator(vanilla_body, f'{DATASET}/train/',batch_size,classes_path,anchors_path,input_shape,random=True, switch_prob = switch_prob)
+        golden_gen_valid,valid_size  = get_mixed_generator(vanilla_body,f'{DATASET}/valid/',batch_size,classes_path,anchors_path,input_shape,random=True, switch_prob = switch_prob)
     elif MIXED_LABEL_V2:
         callback_obj = MixedGeneratorV2Obj(num_epochs_switch)
-        golden_gen_train, train_size = get_mixed_v2_generator(vanilla_body, './../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True, callback_obj=callback_obj)
+        golden_gen_train, train_size = get_mixed_v2_generator(vanilla_body, f'{DATASET}/train/',batch_size,classes_path,anchors_path,input_shape,random=True, callback_obj=callback_obj)
         callbacks_list.append(callback_obj)
     elif MIXED_LABEL_V3:
         callback_obj = MixedGeneratorV2Obj(num_epochs_switch, v3 = True, f1_target=f1_target)
-        golden_gen_train, train_size = get_mixed_v3_generator(model_body, './../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,True, callback_obj, CLASSES)
+        golden_gen_train, train_size = get_mixed_v3_generator(model_body,f'{DATASET}/train/',batch_size,classes_path,anchors_path,input_shape,True, callback_obj, CLASSES)
         callbacks_list.append(callback_obj)
         callbacks_list.remove(f1_score)
-        callbacks_list.append(Obj_metrics_callback(model_body,'./../../keras-yolo3/valid/',classes_path,anchors_path,input_shape, CLASSES = CLASSES, mixed_callback = callback_obj))
+        callbacks_list.append(Obj_metrics_callback(model_body,f'{DATASET}/valid/',classes_path,anchors_path,input_shape, CLASSES = CLASSES, mixed_callback = callback_obj))
     elif custom_loss:
-        golden_gen_train, train_size = get_merged_generator(vanilla_body,'./../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True)
-        golden_gen_valid, valid_size = get_merged_generator(vanilla_body,'./../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True)
+        golden_gen_train, train_size = get_merged_generator(vanilla_body,f'{DATASET}/train/',batch_size,classes_path,anchors_path,input_shape,random=True)
+        golden_gen_valid, valid_size = get_merged_generator(vanilla_body,f'{DATASET}/train/',batch_size,classes_path,anchors_path,input_shape,random=True)
     elif MIXED_LABEL_V4:
         callback_obj = MixedGeneratorV2Obj(num_epochs_switch, v3 = True, f1_target=f1_target)
-        golden_gen_train, train_size = get_mixed_v3_generator(model_body, './../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,True, callback_obj, CLASSES)
+        golden_gen_train, train_size = get_mixed_v3_generator(model_body, f'{DATASET}/train/',batch_size,classes_path,anchors_path,input_shape,True, callback_obj, CLASSES)
         callbacks_list.append(callback_obj)
         callbacks_list.remove(f1_score)
-        callbacks_list.append(Obj_metrics_callback(model_body,'./../../keras-yolo3/valid/',classes_path,anchors_path,input_shape, CLASSES = CLASSES, mixed_callback = callback_obj))
+        callbacks_list.append(Obj_metrics_callback(model_body,f'{DATASET}/valid/',classes_path,anchors_path,input_shape, CLASSES = CLASSES, mixed_callback = callback_obj))
         callbacks_list.remove(injection_layer_callback)
         callbacks_list.append(ClassesSingleLayerInjection(CLASSES,injection_points[0],extraction_frequency=injection_frequency,use_batch=True, mixed_callback= callback_obj))
     elif custom_loss_v2:
@@ -174,8 +178,8 @@ def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGH
     
     if GOLDEN_GT:
         ###TO REMOVE THEN####
-        golden_gen_train,train_size  = get_vanilla_generator('./../../keras-yolo3/train/',batch_size,classes_path,anchors_path,input_shape,random=True, keep_label=False)
-        golden_gen_valid,valid_size  = get_vanilla_generator('./../../keras-yolo3/valid/',batch_size,classes_path,anchors_path,input_shape,random=True, keep_label= False)
+        golden_gen_train,train_size  = get_vanilla_generator(f'{DATASET}/train/',batch_size,classes_path,anchors_path,input_shape,random=True, keep_label=False)
+        golden_gen_valid,valid_size  = get_vanilla_generator(f'{DATASET}/valid/',batch_size,classes_path,anchors_path,input_shape,random=True, keep_label= False)
 
         CLASSES.disable_all()
         reduce_lr                 = ReduceLROnPlateau(monitor='val_loss', factor=0.1, patience=3, verbose=1, min_lr=0.000001)
