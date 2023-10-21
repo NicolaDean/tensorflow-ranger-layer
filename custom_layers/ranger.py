@@ -85,6 +85,9 @@ class Ranger(keras.layers.Layer):
         self.shape = input_shape
         self.reset_weights(input_shape)
 
+    def get_range(self):
+        return self.w
+    
     '''
     Compute the Layer Domain of values
     '''

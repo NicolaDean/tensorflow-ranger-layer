@@ -4,9 +4,12 @@ gen_report(){
 }
 
 run_script(){
-    gen_report $1 MNIST 10 '--resume_from AAAA --start_at '$2
+    #gen_report $1 MNIST 10 '--resume_from AAAA --start_at '$2
     gen_report $1 GTSRB 25 '--resume_from AAAA --start_at '$2
 }
+
+run_script vgg19 0
+
 
 #run_script vgg16
 #run_script vgg19 
@@ -25,7 +28,7 @@ for skip in 200 220 240 260 280 300
 do
     #run_script mobilenetv2 $skip
     #run_script resnet50 $skip
-    run_script efficientnet $skip
+    #run_script efficientnet $skip
     #run_script convnettiny $skip
     #run_script densenet $skip
 done

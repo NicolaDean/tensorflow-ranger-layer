@@ -68,7 +68,7 @@ class CLASSES_HELPER():
     def set_model(self,model):
         self.model = model
     
-    def elaborate_layer(self,l,num_of_injection_sites):
+    def elaborate_layer(self,l,num_of_injection_sites,use_ranger=False):
             CLASSES_MODEL_TYPE = CLASSES_HELPER.check_classes_layer_compatibility_dev(l)#CLASSES_DEV UPDATE
 
             if CLASSES_MODEL_TYPE != None:
@@ -83,9 +83,28 @@ class CLASSES_HELPER():
                 injection_layer_name = "classes_" + l.name
 
                 self.injection_points.append(injection_layer_name)
-                available_injection_sites, masks, error_ids = create_injection_sites_layer_simulator(num_of_injection_sites,
+
+                if use_ranger:
+                    ranger_layer = CLASSES_HELPER.get_layer(self.vanilla_model,"ranger_" + l.name)
+                    r = ranger_layer.get_range()
+                    range_min = r[0]
+                    range_max = r[1]
+                    print("COMPUTE RANGESSS")
+                    print(f"RANGES FOR {l.name} ARE : {range_min.numpy()} ,  {range_max.numpy()}")
+
+                else:
+                    range_min = -30
+                    range_max = +30
+
+                available_injection_sites, masks, error_ids = create_injection_sites_layer_simulator(
+                                                                            num_of_injection_sites,
                                                                             CLASSES_MODEL_TYPE,
-                                                                            str(inverted_shape), str(shape),CLASSES_MODELS_PATH.models_warp, return_id_errors = True)
+                                                                            str(inverted_shape), 
+                                                                            str(shape),
+                                                                            CLASSES_MODELS_PATH.models_warp,
+                                                                            return_id_errors = True,
+                                                                            range_min=range_min,
+                                                                            range_max=range_max)
                 error_ids = np.array(error_ids)
                 error_ids = np.squeeze(error_ids)
                 return ErrorSimulator(available_injection_sites,masks,len(available_injection_sites),error_ids,name="classes")
@@ -94,7 +113,8 @@ class CLASSES_HELPER():
                 #print(f"\033[0;32m IT IS A BATCHNORM? [{isinstance(l,tf.compat.v1.keras.layers.BatchNormalization)}]]")
                 return None
 
-    def add_classes_by_name(self,layer_name,num_of_injection_sites):
+    #PUT use_ranger to False if we dont use ranger layers to compute ranges
+    def add_classes_by_name(self,layer_name,num_of_injection_sites,use_ranger=True): 
         if type(layer_name) == list:
             def match_cond(layer):
                 check = False
@@ -107,7 +127,7 @@ class CLASSES_HELPER():
                 return layer.name == layer_name
             
         def classes_layer_factory(layer):
-            return self.elaborate_layer(layer,num_of_injection_sites)
+            return self.elaborate_layer(layer,num_of_injection_sites,use_ranger=use_ranger)
         
         self.vanilla_model = self.model
         self.num_of_injection = math.floor(num_of_injection_sites / 5)

@@ -111,9 +111,20 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
 
     layer_names = selected_layer
 
+    #RAGE TUNE THE YOLO MODEL
+    def range_tuning(RANGER):
+        print("=============FINE TUNING=============")
+        if not SKIP_INJECTION:
+            for _ in tqdm(range(0,len(train_lines)//32)):
+                dataset = next(train_gen)
+                data   = dataset[0][0]
+                image_data = data
+                #image_data = np.expand_dims(data[0], 0)  # Add batch dimension.
+                RANGER.tune_model_range(image_data, reset=False)
+
     print("Layers on which we inject faults: ", str(layer_names))
     #if type(a_list) == list:
-    RANGER,CLASSES = add_ranger_classes_to_model(yolo.yolo_model,layer_names,NUM_INJECTIONS=60)
+    RANGER,CLASSES = add_ranger_classes_to_model(yolo.yolo_model,layer_names,NUM_INJECTIONS=60,use_classes_ranging=True,range_tuning_fn=range_tuning)
     yolo_ranger = RANGER.get_model()
     #yolo_ranger.summary()
     CLASSES.set_model(yolo_ranger)
@@ -121,15 +132,7 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
 
     yolo_faulty = yolo_ranger
    
-    #RAGE TUNE THE YOLO MODEL
-    print("=============FINE TUNING=============")
-    if not SKIP_INJECTION:
-        for _ in tqdm(range(0,len(train_lines)//32)):
-            dataset = next(train_gen)
-            data   = dataset[0][0]
-            image_data = data
-            #image_data = np.expand_dims(data[0], 0)  # Add batch dimension.
-            RANGER.tune_model_range(image_data, reset=False)
+
 
     ########################## REPORT #########################
 
@@ -237,10 +240,10 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
                     # get injected error id (cardinality, pattern)
                     curr_error_id = layer.error_ids[layer.get_history()[-1]]
                     curr_error_id = np.squeeze(curr_error_id)
-
+                    #print(curr_error_id)
                     #Exclude sample if some error occurred
                     if err != "":
-                        report += [Error_ID_report("valid", layer_name, sample_id, curr_error_id[0], curr_error_id[1], 
+                        report += [Error_ID_report("valid", layer_name, sample_id, curr_error_id, None, 
                                                 np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, err)]
                         num_excluded += 1
                         continue
@@ -274,7 +277,7 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
                     num_misclassification = num_misclassification_box_shape + num_misclassification_wrong_box
 
                     #-------------------------------------------------------------
-                    report += [Error_ID_report("valid", layer_name, sample_id, curr_error_id[0], curr_error_id[1], 
+                    report += [Error_ID_report("valid", layer_name, sample_id, curr_error_id, None, 
                                                 v_out_boxes.shape[0], out_boxes.shape[0], precision, recall, f1_score, tp, fp, fn, err)]
 
                     num_of_injection_comleted += 1

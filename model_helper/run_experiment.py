@@ -19,7 +19,7 @@ sys.path.append(directory + LIBRARY_PATH)
 
 print("AAA:" + directory + LIBRARY_PATH)
 from model_helper.ranger_model import *
-from model_helper.classes_model import *
+from model_helper.classes_dev_model import *
 
 def add_classes_to_model(model,layer_name,NUM_INJECTIONS=128):
     num_requested_injection_sites = NUM_INJECTIONS * 5
@@ -36,7 +36,8 @@ def add_classes_to_model(model,layer_name,NUM_INJECTIONS=128):
 
     return CLASSES
 
-def add_ranger_classes_to_model(model,layer_name,NUM_INJECTIONS=128):
+
+def add_ranger_classes_to_model(model,layer_name,NUM_INJECTIONS=128,use_classes_ranging=False,range_tuning_fn = None,X=None):
     #--------------------------------------------------------------------------------------------------
     #--------------------------RANGER SETUP------------------------------------------------------------
     #--------------------------------------------------------------------------------------------------
@@ -50,10 +51,13 @@ def add_ranger_classes_to_model(model,layer_name,NUM_INJECTIONS=128):
 
     #Extract the new Model containing Ranger
     ranger_model = RANGER.get_model()
-    ranger_model.summary()
+    #ranger_model.summary()
     
     #TUNE THE LAYERS RANGE DOMAIN
     #RANGER.tune_model_range(x_train)
+
+    if use_classes_ranging:
+        range_tuning_fn(RANGER)
     
     #--------------------------------------------------------------------------------------------------
     #--------------------------CLASSES SETUP-----------------------------------------------------------
@@ -65,10 +69,10 @@ def add_ranger_classes_to_model(model,layer_name,NUM_INJECTIONS=128):
     CLASSES = CLASSES_HELPER(ranger_model)        
     
     #Add Fault Injection Layer after each Convolutions or Maxpool
-    CLASSES.add_classes_by_name(layer_name,num_requested_injection_sites)
+    CLASSES.add_classes_by_name(layer_name,num_requested_injection_sites,use_ranger=use_classes_ranging)
     classes_model = CLASSES.get_model()
     #classes_model.predict(x_val)
-    classes_model.summary()
+    #classes_model.summary()
     #keras.utils.plot_model(classes_model,to_file="classes.png" ,show_shapes=True)
     CLASSES.disable_all() #Disable all fault injection points
 

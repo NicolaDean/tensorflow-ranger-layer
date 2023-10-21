@@ -81,7 +81,7 @@ class RANGER_HELPER():
         #IN and OUT of the Network
         #outputs = layers[len(layers)-1]
         #layers.pop()    #Remove output
-
+        
         #Recursively Search every subblock to add Renger after Conv and Maxpool
         new_model = RANGER_HELPER.convert_block(layers,new_model)
         #new_model = keras.Model(inputs=(inputs), outputs=outputs)
