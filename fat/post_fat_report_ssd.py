@@ -199,7 +199,7 @@ def post_fat_ssd(model_name='ssd',experiment_name="test",use_classes = True, inj
             ----------------------------------------------------------
         '''
         #Disable Classes
-        CLASSES.disable_all(verbose=False) ##TODO CHECK IF NOW RESULT ARE DIFFERENTS
+        CLASSES.disable_all(verbose=False)
         #Prediction
         detections, predictions_dict, shapes = detect_fn(input_tensor)
         #PostProcess
