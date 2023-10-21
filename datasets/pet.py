@@ -10,6 +10,7 @@ def create_mask(pred_mask):
  pred_mask = tf.argmax(pred_mask, axis=-1)
  pred_mask = pred_mask[..., tf.newaxis]
  return pred_mask[0]
+
 def show_predictions(model,dataset=None, num=1):
  if dataset:
    for image, mask in dataset.take(num):
@@ -52,20 +53,24 @@ def load_image_test(datapoint):
    input_image, input_mask = normalize(input_image, input_mask)
    return input_image, input_mask
 
-def load_train():
+def load_train(BATCH_SIZE=64):
     dataset, info = tfds.load('oxford_iiit_pet:3.*.*', with_info=True)
+   
+    train_size = len(dataset["train"])
+    test_size  = len(dataset["train"])
+    valid      = len(dataset["train"])
+
 
     train_dataset = dataset["train"].map(load_image_train, num_parallel_calls=tf.data.AUTOTUNE)
     test_dataset = dataset["test"].map(load_image_test, num_parallel_calls=tf.data.AUTOTUNE)
 
-    BATCH_SIZE = 64
     BUFFER_SIZE = 1000
     train_batches = train_dataset.cache().shuffle(BUFFER_SIZE).batch(BATCH_SIZE).repeat()
     train_batches = train_batches.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
     validation_batches = test_dataset.take(3000).batch(BATCH_SIZE)
     test_batches = test_dataset.skip(3000).take(669).batch(BATCH_SIZE)
 
-    return train_batches,validation_batches,test_batches
+    return train_batches,validation_batches,test_batches,train_size,3000
 
 def display(display_list):
  plt.figure(figsize=(15, 15))

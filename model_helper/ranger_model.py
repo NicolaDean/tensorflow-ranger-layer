@@ -91,10 +91,10 @@ class RANGER_HELPER():
     def convert_model_v2(self):
         def match_cond(layer):
             if     isinstance(layer,tf.keras.layers.Conv2D)\
-                 or isinstance(layer,tf.keras.layers.BatchNormalization):
+                 or isinstance(layer,tf.keras.layers.BatchNormalization)\
+                or isinstance(layer,tf.keras.layers.MaxPooling2D) \
+                or isinstance(layer,tf.keras.layers.AveragePooling2D):
                 #or isinstance(layer,tf.keras.layers.Add) \
-                #or isinstance(layer,tf.keras.layers.MaxPooling2D) \
-                #or isinstance(layer,tf.keras.layers.AveragePooling2D) \
                 
                 return True
             else:
@@ -118,13 +118,13 @@ class RANGER_HELPER():
 
     After it finish the process it set the model in inference mode
     '''
-    def tune_model_range(self,X,Y=None,reset=True):
+    def tune_model_range(self,X,Y=None,reset=True,verbose=False):
         if reset:
             self.reset_ranger_layers()
             
         #print("Tuning the moodel Range Domain")
         self.set_ranger_mode(RangerModes.RangeTuning)
-        self.model.predict(X,verbose=False)
+        self.model.predict(X,verbose=verbose)
 
         #TODO => PRINT THE MODELS RANGES
         self.set_ranger_mode(RangerModes.Inference)
