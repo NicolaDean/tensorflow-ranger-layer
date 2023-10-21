@@ -8,6 +8,8 @@ report(){
 }
 
 
+
+#report batch_normalization_5
 report "batch_normalization_3"
 report "batch_normalization_4"
 report "batch_normalization_5"

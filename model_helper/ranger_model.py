@@ -36,7 +36,7 @@ class RANGER_HELPER():
         layers = [layer for layer in self.model.layers]
         for l in layers:
             if isinstance(l,Ranger):
-                #print(f"Set mode {mode.name} to {l.name}")
+                print(f"Set mode {mode.name} to {l.name}")
                 l.set_ranger_mode(mode)
                 l.set_ranger_policy(policy)
                 l.set_ranger_granularity(granularity)

@@ -306,7 +306,6 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
 
         #Stack result of this layer on the report
         report = pd.DataFrame(report)
-        #TODO uncomment this!!!
         report.to_csv(OUTPUT_NAME, mode = 'a', header = False)
         report = []
 
@@ -334,7 +333,7 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
                                            V_recall,I_recall, G_recall)]
         
         f1_score_report = pd.DataFrame(f1_score_report)
-        f1_score_report.to_csv(OUTPUT_NAME_F1, mode = 'a', header = False)
+        f1_score_report.to_csv(OUTPUT_NAME_F1, mode = 'a', header = False, decimal = ',', sep=';')
 
         
  ###################### END REPORT ##########################
@@ -369,7 +368,7 @@ if __name__ == '__main__':
     SKIP_INJECTION  = bool(args.skip_injection)
     SINGLE_F1_FILE  = str(args.single_f1_file)
     
-    print(CHECKPOINT_PATH)
+    
 
     if pre_fat:
         if prefix == None:
@@ -393,4 +392,5 @@ if __name__ == '__main__':
             CHECKPOINT_PATH =  f"{root_folder}/{prefix}/{file_name}"
             break
     
+    print(CHECKPOINT_PATH)
     generate_report(CHECKPOINT_PATH,SELECTED_LAYERS,epoch=epoch,out_prefix=experiment_name,root_folder=root_folder,DATASET=DATASET,SKIP_INJECTION=SKIP_INJECTION,SINGLE_F1_FILE=SINGLE_F1_FILE)
