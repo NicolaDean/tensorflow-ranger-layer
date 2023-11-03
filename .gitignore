@@ -2,17 +2,31 @@
 Self-Driving-Car-3
 classes
 classes-dev
-datasets/GTSRB
-datasets/YOLO
-datasets/steering_wheel
+our_datasets/GTSRB
+our_datasets/CamVid
+our_datasets/YOLO
+our_datasets/steering_wheel
 fat/pedestrian_ssd
 fat/results
 fat/test
+#CHECKPOINTS
+*saved_TFOD_models*
+*.tfrecord
+*.pbtxt
+*.tar.gz
+ckpt-*
+events.out.tfevents.*
+*.pb
+*.config
+variables.data-*
+
+tensorflow-ranger-layer/fat/saved_TFOD_models*
+tensorflow-ranger-layer/fat/utils/ssd_model/Aerial*
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-datasets/train_steering_wheel
+our_dataset/train_steering_wheel
 saved_models
 # C extensions
 *.so

@@ -178,7 +178,7 @@ class Ranger(keras.layers.Layer):
     def call(self, inputs):
         
         switch_cases = {
-            int(RangerModes.Training)   :lambda: inputs,
+            int(RangerModes.Training)   :lambda: self.apply_range_threshold_v2(inputs),
             int(RangerModes.RangeTuning):lambda: self.range_tuning_v2(inputs),
             int(RangerModes.Inference)  :lambda: self.apply_range_threshold_v2(inputs),
             int(RangerModes.Disabled)   :lambda: inputs
@@ -193,6 +193,8 @@ class Ranger(keras.layers.Layer):
             int(RangerModes.Disabled)   :lambda: tf.ones_like(inputs)
             }
             return tf.multiply(tf.switch_case(index,switch_cases_grad), upstream)
+
+        #tf.print("Mode       : ",self.mode)
         return tf.switch_case(index,switch_cases), grad
         #return tf.switch_case(index,switch_cases)
 

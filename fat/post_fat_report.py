@@ -131,8 +131,8 @@ def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_bo
     CLASSES.disable_all(verbose=False)
 
     yolo_faulty = yolo_ranger
-   
-
+    
+    
 
     ########################## REPORT #########################
 

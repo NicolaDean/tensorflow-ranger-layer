@@ -36,7 +36,7 @@ def add_classes_to_model(model,layer_name,NUM_INJECTIONS=128):
 
     return CLASSES
 
-def add_ranger_classes_to_model(model,layer_name,NUM_INJECTIONS=128,use_classes_ranging=False,range_tuning_fn = None,X=None):
+def add_ranger_classes_to_model(model,layer_name,NUM_INJECTIONS=128,use_classes_ranging=False,range_tuning_fn = None,X=None,verbose=False):
     #--------------------------------------------------------------------------------------------------
     #--------------------------RANGER SETUP------------------------------------------------------------
     #--------------------------------------------------------------------------------------------------
@@ -68,7 +68,7 @@ def add_ranger_classes_to_model(model,layer_name,NUM_INJECTIONS=128,use_classes_
     CLASSES = CLASSES_HELPER(ranger_model)        
     
     #Add Fault Injection Layer after each Convolutions or Maxpool
-    CLASSES.add_classes_by_name(layer_name,num_requested_injection_sites,use_ranger=use_classes_ranging)
+    CLASSES.add_classes_by_name(layer_name,num_requested_injection_sites,use_ranger=use_classes_ranging,verbose=verbose)
     classes_model = CLASSES.get_model()
     #classes_model.predict(x_val)
     #classes_model.summary()

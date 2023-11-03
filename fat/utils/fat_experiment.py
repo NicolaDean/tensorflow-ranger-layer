@@ -75,14 +75,22 @@ def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGH
         print("Please select a valid Dataset path")
         exit()
 
-    print()
     if not MULTI_LAYERS_FLAG:
         root, log_dir, model_dir = init_path(root=f'./results/{injection_points[0]}/',EXPERIMENT_NAME=EXPERIMENT_NAME)
     else:
         root, log_dir, model_dir = init_path(root=f'./results/{EXPERIMENT_NAME}/',EXPERIMENT_NAME=EXPERIMENT_NAME)
 
+    if not VANILLA_TRAINING:
+        #Tune ranger layers
+        def range_tuning(RANGER):
+            golden_gen_train,train_size  = get_vanilla_generator(f'{DATASET}/train/',batch_size,classes_path,anchors_path,input_shape,random=True, keep_label=False)
+            ranger_domain_tuning(RANGER,golden_gen_train,int(train_size/batch_size))
+    else:
+        def range_tuning(RANGER):
+            pass
+
     #Build a YOLO model with CLASSES and RANGER Integrated [TODO pass here the list of injection points]
-    model, CLASSES, RANGER, vanilla_body,model_body = build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,injection_points,classes_enable=(not VANILLA_TRAINING),custom_loss=custom_loss,custom_loss_v2=custom_loss_v2)
+    model, CLASSES, RANGER, vanilla_body,model_body = build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,injection_points,classes_enable=(not VANILLA_TRAINING),custom_loss=custom_loss,custom_loss_v2=custom_loss_v2,range_tuning_fn=range_tuning)
     checkpoint_period = 10
 
     #retrieve the f1score target in case of mixedV3
@@ -104,10 +112,8 @@ def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGH
         golden_gen_train,train_size  = get_vanilla_generator(f'{DATASET}/train/',batch_size,classes_path,anchors_path,input_shape,random=True, keep_label=False)
         golden_gen_valid,valid_size  = get_vanilla_generator(f'{DATASET}/valid/',batch_size,classes_path,anchors_path,input_shape,random=True, keep_label= False)
 
-    if not VANILLA_TRAINING:
-        #Tune ranger layers
-        ranger_domain_tuning(RANGER,golden_gen_train,int(train_size/batch_size))
-
+    #RANGER.set_ranger_mode(mode=RangerModes.Training)
+    
     #Declare injection point selection callback
     if MULTI_LAYERS_FLAG:
         #TODO => SUBSTITUTE WITH THE MULTILAYER INJECTION CALLBACK AND REWRITE THE CALLBACK WITH CLEANER CODE

@@ -81,7 +81,7 @@ def selection_policy(self,epoch):
 
 class ClassesLayerPolicy(keras.callbacks.Callback):
 
-    def __init__(self, CLASSES,extraction_frequency = 1.0, use_batch = False, mixed_callback = None,extraction_type=UNIFORM_EXTRACTION,epoch_trigger=1):
+    def __init__(self, CLASSES,extraction_frequency = 1.0, use_batch = False, mixed_callback = None,extraction_type=UNIFORM_EXTRACTION,epoch_trigger=5):
         super().__init__()
         self.injection_points   = CLASSES.get_injection_points()
         self.CLASSES            = CLASSES
@@ -100,6 +100,7 @@ class ClassesLayerPolicy(keras.callbacks.Callback):
 
     def on_train_batch_begin(self, epoch, logs=None):
         if self.use_batch:
+            #print("INNNIEZIONE CLASSES")
             if self.mixed_callback != None and self.mixed_callback.golden != True:
                 return
             selection_policy(self,epoch)

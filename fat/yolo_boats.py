@@ -173,7 +173,7 @@ def _main(checkpoint='./../../keras-yolo3/boats_final.h5',DATASET="./../../keras
         #Merge frame
         final_frame = np.concatenate((r_image, r_image_faulty), axis=1)
         cv2.imshow("result", final_frame)
-
+        
         k =  cv2.waitKey(1) & 0xFF
         
         if k == ord('q'):

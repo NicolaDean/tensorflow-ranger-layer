@@ -68,7 +68,7 @@ class CLASSES_HELPER():
     def set_model(self,model):
         self.model = model
     
-    def elaborate_layer(self,l,num_of_injection_sites,use_ranger=False):
+    def elaborate_layer(self,l,num_of_injection_sites,use_ranger=False,verbose=False):
             CLASSES_MODEL_TYPE = CLASSES_HELPER.check_classes_layer_compatibility_dev(l)#CLASSES_DEV UPDATE
 
             if CLASSES_MODEL_TYPE != None:
@@ -104,7 +104,11 @@ class CLASSES_HELPER():
                                                                             CLASSES_MODELS_PATH.models_warp,
                                                                             return_id_errors = True,
                                                                             range_min=range_min,
-                                                                            range_max=range_max)
+                                                                            range_max=range_max,
+                                                                            verbose=verbose
+                                                                            )
+                print("GENERATED INJECTIONS")
+
                 error_ids = np.array(error_ids)
                 error_ids = np.squeeze(error_ids)
                 return ErrorSimulator(available_injection_sites,masks,len(available_injection_sites),error_ids,name="classes")
@@ -114,7 +118,7 @@ class CLASSES_HELPER():
                 return None
 
     #PUT use_ranger to False if we dont use ranger layers to compute ranges
-    def add_classes_by_name(self,layer_name,num_of_injection_sites,use_ranger=True): 
+    def add_classes_by_name(self,layer_name,num_of_injection_sites,use_ranger=True,verbose=False): 
         if type(layer_name) == list:
             def match_cond(layer):
                 check = False
@@ -127,7 +131,7 @@ class CLASSES_HELPER():
                 return layer.name == layer_name
             
         def classes_layer_factory(layer):
-            return self.elaborate_layer(layer,num_of_injection_sites,use_ranger=use_ranger)
+            return self.elaborate_layer(layer,num_of_injection_sites,use_ranger=use_ranger,verbose=verbose)
         
         self.vanilla_model = self.model
         self.num_of_injection = math.floor(num_of_injection_sites / 5)

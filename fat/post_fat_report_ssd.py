@@ -115,8 +115,6 @@ def post_fat_ssd(model_name='ssd',experiment_name="test",use_classes = True, inj
 
     import os
     
-    annotation_path_train  = f'{DATASET}/train/_annotations.txt'
-    annotation_path_valid  = f'{DATASET}/valid/_annotations.txt'
     classes_path           = f'{DATASET}/train/_classes.txt'
     anchors_path           = './../../keras-yolo3/model_data/yolo_anchors.txt'
 

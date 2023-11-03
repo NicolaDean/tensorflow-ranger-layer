@@ -54,11 +54,11 @@ def calculate_iou(gt_mask, pred_mask, class_check=1,threshold = True):
 def post_fat_segmentation_report(injection_point,out_prefix="test", prefat=False,SINGLE_F1_FILE=False,SKIP_INJECTION=False):
 
 
-    OUTPUT_NAME    = f"./reports/yolo/{injection_point}/{out_prefix}_epoch.csv"
-    OUTPUT_NAME_F1 = f"./reports/yolo/{injection_point}/F1_REPORT_{out_prefix}_{injection_point}.csv"
+    OUTPUT_NAME    = f"./reports/unet/{injection_point}/{out_prefix}_epoch.csv"
+    OUTPUT_NAME_F1 = f"./reports/unet/{injection_point}/F1_REPORT_{out_prefix}_{injection_point}.csv"
     
     if SINGLE_F1_FILE:
-        OUTPUT_NAME_F1 = f"./reports/yolo/F1_REPORT_{out_prefix}.csv" 
+        OUTPUT_NAME_F1 = f"./reports/unet/F1_REPORT_{out_prefix}.csv" 
 
     
     NUM_ITERATATION_PER_SAMPLE = 50
