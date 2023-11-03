@@ -19,6 +19,9 @@ events.out.tfevents.*
 *.pb
 *.config
 variables.data-*
+variables.index
+checkpoint
+
 
 tensorflow-ranger-layer/fat/saved_TFOD_models*
 tensorflow-ranger-layer/fat/utils/ssd_model/Aerial*
