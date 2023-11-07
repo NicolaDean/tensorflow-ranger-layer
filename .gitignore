@@ -13,6 +13,7 @@ fat/results
 fat/test
 *.png
 *.jpg
+*.pkl
 #CHECKPOINTS
 *saved_TFOD_models*
 *.tfrecord
