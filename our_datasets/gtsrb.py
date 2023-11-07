@@ -33,7 +33,7 @@ channels = 3
 NUM_CATEGORIES = len(os.listdir(train_path))
 NUM_CATEGORIES
 
-def load_train():
+def load_train(shape = (IMG_HEIGHT, IMG_WIDTH)):
     image_data = []
     image_labels = []
 
@@ -45,7 +45,7 @@ def load_train():
             try:
                 image = cv2.imread(path + '/' + img)
                 image_fromarray = Image.fromarray(image, 'RGB')
-                resize_image = image_fromarray.resize((IMG_HEIGHT, IMG_WIDTH))
+                resize_image = image_fromarray.resize(shape)
                 image_data.append(np.array(resize_image))
                 image_labels.append(i)
             except:
@@ -76,7 +76,7 @@ def load_train():
 
     return x_train, x_val[:500], y_train, y_val[:500]
 
-def load_test():
+def load_test(shape = (IMG_HEIGHT, IMG_WIDTH)):
     data = pd.read_csv("../datasets/GTSRB/Test.csv")
     print(data)
 
@@ -87,7 +87,7 @@ def load_test():
         path = "../datasets/GTSRB/" + "/" + path
         image = cv2.imread(path)
         image_fromarray = Image.fromarray(image, 'RGB')
-        resize_image = image_fromarray.resize((IMG_HEIGHT, IMG_WIDTH))
+        resize_image = image_fromarray.resize(shape)
         image_data.append(np.array(resize_image))
         image_labels.append(row['ClassId'])
 
@@ -102,5 +102,5 @@ def load_test():
 
     return x_test,y_test
 
-def load_dataset():
-    return load_train(),load_dataset()
+def load_dataset(shape = (IMG_HEIGHT, IMG_WIDTH)):
+    return load_train(shape),load_dataset(shape)

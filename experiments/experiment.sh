@@ -1,14 +1,29 @@
 
+train(){
+    python run_experiment_generic.py --model $1 --dataset SHAPE_COUNT --epochs 25 --regression --input_shape 100 --gen_model_statistics --no_report #--no_train --input_shape 100 $4 #--no_train $4
+}
+
 gen_report(){
-    python run_experiment_generic.py --model $1 --dataset $2 --epochs $3 --no_train $4
+    python run_experiment_generic.py --model $1 --dataset $2 --epochs $3 --no_train --input_shape $4 $5 #--no_train $4
 }
 
 run_script(){
-    #gen_report $1 MNIST 10 '--resume_from AAAA --start_at '$2
-    gen_report $1 GTSRB 25 '--resume_from AAAA --start_at '$2
+    gen_report $1 MNIST 10 48 '--resume_from AAAA --start_at '$2
+    gen_report $1 GTSRB 25 32 '--resume_from AAAA --start_at '$2
+    gen_report $1 CALTECH101 40 64 '--resume_from AAAA --start_at '$2
+    #gen_report $1 SHAPE_COUNT 25 100 '--regression --resume_from AAAA --start_at '$2
 }
 
-run_script vgg19 0
+
+#train vgg16 0
+#train vgg19 0
+#train mobilenetv2 0
+#train resnet50 0
+#train efficientnet 0
+#train xception 0
+#train inceptionv3 0
+#train densenet 0
+#train convnettiny 0
 
 
 #run_script vgg16
@@ -24,11 +39,17 @@ run_script vgg19 0
 
 #gen_report mobilenetv2 MNIST 5 '--resume_from block_1_expand_BN'
 #gen_report mobilenetv2 GTSRB 25 '--resume_from block_2_depthwise_BN'
-for skip in 200 220 240 260 280 300  
+for skip in 20 30 40 50 60 70 80 90 100 110 120 130 140 150 160 170 180 190
 do
-    #run_script mobilenetv2 $skip
+    #run_script vgg16 $skip
+    #run_script vgg19 $skip
+    run_script mobilenetv2 $skip
     #run_script resnet50 $skip
     #run_script efficientnet $skip
     #run_script convnettiny $skip
     #run_script densenet $skip
+    #run_script xception $skip
+    run_script nasnet $skip
+    
+
 done

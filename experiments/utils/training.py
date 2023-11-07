@@ -1,22 +1,23 @@
 import tensorflow.keras as keras
 import tensorflow as tf
 
-def train_model(model,DATASET,NUM_CATEGORIES,EPOCHS):
+def train_model(model,DATASET,NUM_CATEGORIES,EPOCHS,REGRESSION=False):
 
     print(f'MODEL HAS : [{NUM_CATEGORIES}] classes')
    
     (x_train,x_val,y_train,y_val,DATASET_NAME) = DATASET
 
-    y_train = keras.utils.to_categorical(y_train, NUM_CATEGORIES)
-    y_val = keras.utils.to_categorical(y_val, NUM_CATEGORIES)
+    if not REGRESSION:
+        y_train = keras.utils.to_categorical(y_train, NUM_CATEGORIES)
+        y_val = keras.utils.to_categorical(y_val, NUM_CATEGORIES)
 
 
     history = model.fit(x_train, y_train, batch_size=64, epochs=EPOCHS, validation_data=(x_val, y_val))
 
 
 
-def load_model(MODEL = "vgg16",NUM_CLASSES=3,INPUT_SHAPE=(32,32,3)):
-
+def load_model(MODEL = "vgg16",NUM_CLASSES=3,INPUT_SHAPE=(32,32,3),REGRESSION=False):
+    
     if MODEL == "vgg16":
         head = tf.keras.applications.VGG16(include_top=False,weights="imagenet",input_shape=INPUT_SHAPE,classes=NUM_CLASSES)
         preprocess_fn = tf.keras.applications.vgg16.preprocess_input
@@ -54,14 +55,22 @@ def load_model(MODEL = "vgg16",NUM_CLASSES=3,INPUT_SHAPE=(32,32,3)):
 
     layers = tf.keras.layers
     
-
+    
     model = layers.BatchNormalization()(head.output)
     model = layers.Flatten()(model)
     model = layers.Dense(512, activation='relu')(model)
-    out   = layers.Dense(NUM_CLASSES, activation='softmax')(model)
+
+    if not REGRESSION:
+        out   = layers.Dense(NUM_CLASSES, activation='softmax')(model)
+    else:
+        out   = layers.Dense(NUM_CLASSES, activation='relu')(model)
 
     model = tf.keras.Model(inputs=head.input, outputs=out)
-    model.compile(loss='categorical_crossentropy',optimizer=tf.keras.optimizers.Adam(),metrics=['accuracy'])
+
+    if not REGRESSION:
+        model.compile(loss='categorical_crossentropy',optimizer=tf.keras.optimizers.Adam(),metrics=['accuracy'])
+    else:
+        model.compile(loss='mean_squared_error',optimizer=tf.keras.optimizers.Adam(),metrics=['accuracy'])
     #model.summary()
 
     return model,preprocess_fn

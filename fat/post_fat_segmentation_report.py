@@ -66,9 +66,18 @@ def post_fat_segmentation_report(injection_point,out_prefix="test", prefat=False
 
     model = tf.keras.models.load_model("../saved_models/unet_pet")
     
+
+    #RAGE TUNE THE YOLO MODEL
+    def range_tune(RANGER):
+        print("=============FINE TUNING=============")
+        if not SKIP_INJECTION:
+            for image, mask in tqdm(train_batches.take(200)):
+                #image_data = np.expand_dims(data[0], 0)  # Add batch dimension.
+                RANGER.tune_model_range(image, reset=False)
+
     print("Layers on which we inject faults: ", str(injection_point))
     #if type(a_list) == list:
-    RANGER,CLASSES = add_ranger_classes_to_model(model,[injection_point],NUM_INJECTIONS=60)
+    RANGER,CLASSES = add_ranger_classes_to_model(model,[injection_point],NUM_INJECTIONS=60,range)
     inj_model = RANGER.get_model()
     #yolo_ranger.summary()
     CLASSES.set_model(inj_model)
@@ -78,12 +87,6 @@ def post_fat_segmentation_report(injection_point,out_prefix="test", prefat=False
 
     print(f"SIZE = [{train_size}]")
 
-    #RAGE TUNE THE YOLO MODEL
-    print("=============FINE TUNING=============")
-    if not SKIP_INJECTION:
-        for image, mask in tqdm(train_batches.take(200)):
-            #image_data = np.expand_dims(data[0], 0)  # Add batch dimension.
-            RANGER.tune_model_range(image, reset=False)
 
     ########################## REPORT #########################
 
