@@ -121,7 +121,7 @@ def generate_layer_report(model_name,model,inj_model,DATASET,CLASSES,RANGER,expe
                     clip_rob    = 0
                     thresh_rob  = 0
 
-                    '''
+                    
                     RANGER.set_ranger_mode(RangerModes.Inference,RangerPolicies.Clipper,RangerGranularity.Layer)
                     pred        = inj_model.predict(x_batch,batch_size=BATCH_SIZE,verbose=False)
                     pred        = tf.cast(tf.argmax(pred, 1),tf.int32)
@@ -139,7 +139,7 @@ def generate_layer_report(model_name,model,inj_model,DATASET,CLASSES,RANGER,expe
                     thresh_rob  = 1 - thresh_acc
 
                     progress_bar.set_postfix({'Clip_rob': clip_rob,'Thresh_rob': thresh_rob,'tot_samples': tot_samples})
-                    '''
+                    
     if not REGRESSION:
         line_report = Fault_injection_Report(model_name,layer_name,tot_samples,tot_nan,tot_clip_misc,tot_thres_misc,nan_rob,clip_rob,thresh_rob)
     else:
@@ -200,7 +200,7 @@ def generate_report(model_name,model,DATASET,experiment_name,NUM_SAMPLE_ITERATIO
 
     #Range Tuning
     #TUNE THE LAYERS RANGE DOMAIN
-    #RANGER.tune_model_range(x_train,verbose=True)#DECOMMENT
+    RANGER.tune_model_range(x_train,verbose=True)#DECOMMENT
 
     layer_names = CLASSES.injection_points
 

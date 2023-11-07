@@ -65,7 +65,7 @@ def load_model_ssd(use_classes=False,injection_points=[],dataset='aerial',get_da
     #Get a working model ready to execute inference
     most_recent_checkpoint_path                       = MODEL.get_most_recent_checkpoint_from_path(CHECKPOINTS_FOLDER)
     model,ssd_inference_fn,configs, model_config      = MODEL.get_inference_model(most_recent_checkpoint_path)
-
+    
     model._feature_extractor.classification_backbone.summary()
     # Run model through a dummy image so that variables are created
     image, shapes   = model.preprocess(tf.zeros([1, 320, 320, 3]))
