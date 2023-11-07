@@ -88,6 +88,10 @@ class CLASSES_HELPER():
                 error_ids = np.array(error_ids)
                 error_ids = np.squeeze(error_ids)
                 return ErrorSimulator(available_injection_sites,masks,len(available_injection_sites),error_ids,name="classes")
+            else:
+                print(f"\033[0;31mERROR - LAYER {l.name} HAS INCOMPATIBLE TYPE : [{type(l)}]\033[0m")
+                #print(f"\033[0;32m IT IS A BATCHNORM? [{isinstance(l,tf.compat.v1.keras.layers.BatchNormalization)}]]")
+                return None
 
     def add_classes_by_name(self,layer_name,num_of_injection_sites):
         if type(layer_name) == list:
@@ -149,9 +153,9 @@ class CLASSES_HELPER():
     '''
     def check_classes_layer_compatibility(layer):
         #TODO => ADD ALL LAYERS
-        if isinstance(layer,keras.layers.Add):
-            return OperatorType['Add']#TODO FIX, ADD THE ADD MODEL TO WARP
-        elif isinstance(layer,keras.layers.BatchNormalization):
+        if isinstance(layer,keras.layers.BatchNormalization):
+            return OperatorType['FusedBatchNormV3']
+        elif isinstance(layer,tf.compat.v1.keras.layers.BatchNormalization):
             return OperatorType['FusedBatchNormV3']
         elif isinstance(layer,keras.layers.MaxPooling2D):
             return OperatorType['MaxPool2D']
@@ -356,7 +360,7 @@ class CLASSES_HELPER():
     1) concat_previous  = True will concatenate the previously generated report with the new one to facilitate creation of dataframe for complex experiments
     2) fault_tollerance = True will simply add to the Dataframe a column to indicate the presence of FaultTollerance techniques
     '''
-    def gen_model_injection_report(self,X,Y,experiment_name="Generic",num_of_iteration=100,concat_previous=False,file_name_report="report.csv",file_name_patterns="patterns.csv", evaluation = count_misclassification, ignore_misclassification = False) -> pd.DataFrame:
+    def gen_model_injection_report(self,X,Y,experiment_name="Generic",num_of_iteration=100,concat_previous=False,file_name_report="report.csv",file_name_patterns="patterns.csv", evaluation = count_misclassification, ignore_misclassification = False,file_summary="") -> pd.DataFrame:
 
         #For Each Injection Point
         report = []
@@ -381,8 +385,14 @@ class CLASSES_HELPER():
         report.to_csv(file_name_report,mode=mode,header=header)
         print(f"Saving {file_name_patterns} with mode {mode}")
         error_prof_report.to_csv(file_name_patterns,mode=mode,header=header)
+
+
+        summary = report.groupby(['layer_name','experiment']).sum()
+        summary['accuracy'] = summary['misclassifications'] / summary['num_of_injection']
+
+        summary.to_csv(file_summary)
         return report, error_prof_report
-    
+
             
 
 '''

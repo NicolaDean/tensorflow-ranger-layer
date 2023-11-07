@@ -152,15 +152,17 @@ class CustomLossModel(tf.keras.Model):
      
         with tf.GradientTape() as tape:
             loss_inj = self(x, training=True)  # Forward pass Injection 
+            loss_inj = loss_inj * 0.75
             dx_inj   = tape.gradient(loss_inj, self.trainable_variables)
 
         self.CLASSES.disable_all(verbose=False)         # Disable Classes
 
         with tf.GradientTape() as tape:
             loss_gt  = self(x, training=True)  # Forward pass Injection 
+            loss_gt  = loss_gt * 0.25
             dx_gt    = tape.gradient(loss_gt, self.trainable_variables)
-        
-        self.optimizer.apply_gradients(zip(dx_gt + dx_inj , self.trainable_variables))
+        print(type(dx_gt))
+        self.optimizer.apply_gradients(zip((dx_gt + dx_inj) , self.trainable_variables))
         #self.optimizer.apply_gradients(zip(, self.trainable_variables))
 
         loss = loss_gt + loss_inj

@@ -66,15 +66,18 @@ def inject_layer_topology(layer,position,topology,math_cond,insert_layer_factory
             #Create the layer to insert
             new_layer = insert_layer_factory(layer)
 
-            new_layer._name = '{}_{}'.format(new_layer.name,layer.name)
+            if new_layer != None:
+                new_layer._name = '{}_{}'.format(new_layer.name,layer.name)
 
-            #Compute output tensor of new layerqq
-            x = new_layer(x)
+                #Compute output tensor of new layerqq
+                x = new_layer(x)
 
-            print('New layer: {} Old layer: {} Type: {}'.format(new_layer.name,
-                                                            layer.name, position))
-            if position == 'before':
-                x = layer(x)
+                print('New layer: {} Old layer: {} Type: {}'.format(new_layer.name,
+                                                                layer.name, position))
+                if position == 'before':
+                    x = layer(x)
+            else:
+                x = layer(layer_input) #IF NOT VALID THEN DO NOT APP NEW LAYER
         else:
             x = layer(layer_input)
 

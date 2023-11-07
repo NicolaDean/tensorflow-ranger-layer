@@ -43,10 +43,6 @@ from model_helper.run_experiment import *
 sys.path.append("./")
 
 input_shape = (320,320) # multiple of 32, hw
-annotation_path_train   = './../../keras-yolo3/train/_annotations.txt'
-annotation_path_valid   = './../../keras-yolo3/valid/_annotations.txt' 
-classes_path            = './../../keras-yolo3/train/_classes.txt'         
-anchors_path            = './../../keras-yolo3/model_data/yolo_anchors.txt'
 
 
 ########################## REPORT #########################
@@ -62,7 +58,7 @@ Error_ID_report = make_dataclass("Error_ID_report",
                                       ("Precision", float), ("Recall", float), ("F1_score", float),
                                       ("True_positives", float), ("False_positives", float), ("False_negatives", float), ("Error", str)])
 #("Num_excluded",int),("Num_empty")
-F1_score_report = make_dataclass("F1_score_report",[("Layer_name",str),("Epoch",int),("Num_wrong_box_shape",int),("Num_wrong_box_count",int),("TOT_Num_Misclassification",int),("Robustness",float),("V_F1_score",float),("I_F1_score",float),("V_accuracy",float),("I_accuracy",float),("V_precision",float),("I_precision",float),("V_recall",float),("I_recall",float),])
+F1_score_report = make_dataclass("F1_score_report",[("Layer_name",str),("Epoch",int),("Num_wrong_box_shape",int),("Num_wrong_box_count",int),("TOT_Num_Misclassification",int),("Robustness",float),("V_F1_score",float),("I_F1_score",float),("V_accuracy",float),("I_accuracy",float),("V_precision",float),("I_precision",float),("V_recall",float),("I_recall",float)])
     
 
 def post_process_ssd_out(detections,threshold=0.5):
@@ -107,15 +103,21 @@ def post_process_ssd_out(detections,threshold=0.5):
 
         return new_boxes,classes,scores
 
-def post_fat_ssd(model_name='ssd',experiment_name="test",use_classes = True, injection_point='',NUM_INJECTIONS=50,epoch=""):
+def post_fat_ssd(model_name='ssd',experiment_name="test",use_classes = True, injection_point='',NUM_INJECTIONS=50,epoch="",SINGLE_F1_FILE=False,DATASET="./../../keras-yolo3",dataset_type="aerial"):
 
     OUTPUT_NAME    = f"./reports/{model_name}/{injection_point}/{experiment_name}_epoch_{epoch}.csv"
     OUTPUT_NAME_F1 = f"./reports/{model_name}/{injection_point}/F1_REPORT_{experiment_name}_{injection_point}.csv"
 
+    if SINGLE_F1_FILE:
+        OUTPUT_NAME_F1 = f"./reports/ssd/F1_REPORT_{experiment_name}.csv"
+    
     NUM_ITERATATION_PER_SAMPLE = 50
 
     import os
-  
+    
+    classes_path           = f'{DATASET}/train/_classes.txt'
+    anchors_path           = './../../keras-yolo3/model_data/yolo_anchors.txt'
+
     # checking if the directory demo_folder 
     # exist or not.
     if not os.path.exists(f"./reports/{model_name}/{injection_point}/"):
@@ -128,16 +130,25 @@ def post_fat_ssd(model_name='ssd',experiment_name="test",use_classes = True, inj
          print("NO INJECTION LAYER SELECTED")
          return
     
-    model,CLASSES,RANGER,detect_fn,configs,vanilla_backone,inj_backbone = load_model_ssd(use_classes=use_classes,injection_points=[injection_point])
+
+    model,CLASSES,RANGER,detect_fn,configs,vanilla_backone,inj_backbone = load_model_ssd(use_classes=use_classes,injection_points=[injection_point],dataset=dataset_type)
     
     #IMPORTANT => SET THE proc_img to false to avoid YOLO preprocess on SSD model
-    golden_gen_ranger,ranger_size   = get_vanilla_generator('./../../keras-yolo3/train/',32,classes_path,anchors_path,input_shape,random=False, keep_label=True, proc_img=False)
-    golden_gen_valid,valid_size     = get_vanilla_generator('./../../keras-yolo3/valid/',1 ,classes_path,anchors_path,input_shape,random=False, keep_label=True, proc_img=False)
+    golden_gen_ranger,ranger_size   = get_vanilla_generator(f'{DATASET}/train/',32,classes_path,anchors_path,input_shape,random=False, keep_label=True, proc_img=False)
+    golden_gen_valid,valid_size     = get_vanilla_generator(f'{DATASET}/valid/',1 ,classes_path,anchors_path,input_shape,random=False, keep_label=True, proc_img=False)
+
+    if valid_size > 150:
+        valid_size = 500
 
     #Range Tune the model
     #RAGE TUNE THE YOLO MODEL
     print("=============FINE TUNING=============")
-    for _ in tqdm(range(ranger_size//32)):
+    if (ranger_size//32) > 100:
+        size = 100
+    else:
+        size = ranger_size//32
+
+    for _ in tqdm(range(size)):
         dataset = next(golden_gen_ranger)
         data   = dataset[0][0]
         image_data = data
@@ -203,12 +214,12 @@ def post_fat_ssd(model_name='ssd',experiment_name="test",use_classes = True, inj
         #Prediction
         detections, predictions_dict, shapes = detect_fn(input_tensor)
         #PostProcess
-        v_out_boxes,v_out_classes,scores = post_process_ssd_out(detections)
+        v_out_boxes,v_out_classes,scores = post_process_ssd_out(detections,threshold=0.4)
 
         #Compute F1 score
-        precision,recall,f1_score, tp, fp, fn = compute_F1_score(y_true_boxes,y_true_classes,v_out_boxes, v_out_classes, iou_th=0.5,verbose=True,convert_format=False)
+        precision,recall,f1_score, tp, fp, fn = compute_F1_score(y_true_boxes,y_true_classes,v_out_boxes, v_out_classes, iou_th=0.5,verbose=False,convert_format=False)
 
-        print(f'P:{f1_score}')
+        #print(f'P:{f1_score}')
         
         V_TP += tp
         V_FP += fp
@@ -221,23 +232,23 @@ def post_fat_ssd(model_name='ssd',experiment_name="test",use_classes = True, inj
         '''
         #Enable Classes
         CLASSES.disable_all(verbose=False)
-        #layer = CLASSES_HELPER.get_layer(model._feature_extractor.classification_backbone,"classes_" + injection_point,verbose=False)
-        #assert isinstance(layer, ErrorSimulator)
-        #layer.set_mode(ErrorSimulatorMode.enabled)
+        layer = CLASSES_HELPER.get_layer(model._feature_extractor.classification_backbone,"classes_" + injection_point,verbose=False)
+        assert isinstance(layer, ErrorSimulator)
+        layer.set_mode(ErrorSimulatorMode.enabled)
 
         for _ in range(NUM_INJECTIONS):
 
             #Prediction
             detections, predictions_dict, shapes = detect_fn(input_tensor)
             #PostProcess
-            i_out_boxes,i_out_classes,scores = post_process_ssd_out(detections)
+            i_out_boxes,i_out_classes,scores = post_process_ssd_out(detections,threshold=0.4)
             #Compute partial injection F1 score
             precision,recall,f1_score, tp, fp, fn = compute_F1_score(v_out_boxes,v_out_classes,i_out_boxes, i_out_classes, iou_th=0.5,verbose=False,convert_format=False)
 
             
-            # get injected error id (cardinality, pattern)
-            #curr_error_id = layer.error_ids[layer.get_history()[-1]]
-            #curr_error_id = np.squeeze(curr_error_id)
+            #get injected error id (cardinality, pattern)
+            curr_error_id = layer.error_ids[layer.get_history()[-1]]
+            curr_error_id = np.squeeze(curr_error_id)
 
             I_TP += tp
             I_FP += fp
@@ -258,7 +269,7 @@ def post_fat_ssd(model_name='ssd',experiment_name="test",use_classes = True, inj
             num_of_injection_comleted += 1
 
             robustness = 1 - (float(num_misclassification) / float(num_of_injection_comleted))
-            progress_bar.set_postfix({'Robu': robustness,'num_exluded': num_excluded,'tot_inj':num_of_injection_comleted})
+            progress_bar.set_postfix({'Robu': robustness,'w_shape': num_misclassification_box_shape,'box_w': num_misclassification_wrong_box,'tot_inj':num_of_injection_comleted})
         
         
     #Stack result of this layer on the report
@@ -297,16 +308,22 @@ if __name__ == '__main__':
     parser.add_argument("--model_name"      , action = "store", default="ssd")
     parser.add_argument("--experiment_name" , action = "store", default="test")
     parser.add_argument("--layer"           , action = "store", default="")
+    parser.add_argument("--dataset"         , action = "store", default="aerial")
+    parser.add_argument("--dataset_path"    , action = "store", default="./../../keras-yolo3")
     parser.add_argument("--prefat",default=False,action = "store_true")
+    parser.add_argument("--single_file",default=False,action = "store_true")
 
 
     args            = parser.parse_args()
     model_name      = str(args.model_name)
     experiment_name = str(args.experiment_name)
     layer           = str(args.layer)
-    pre_fat         = args.prefat
+    pre_fat         = bool(args.prefat)
+    single_file     = bool(args.single_file)
+    dataset_path        = str(args.dataset_path)
+    dataset_type        = str(args.dataset)
 
-    post_fat_ssd(model_name=model_name,experiment_name=experiment_name,use_classes=True,injection_point=layer,NUM_INJECTIONS=50,epoch="")
+    post_fat_ssd(model_name=model_name,experiment_name=experiment_name,use_classes=True,injection_point=layer,NUM_INJECTIONS=50,epoch="",SINGLE_F1_FILE=single_file,DATASET=dataset_path,dataset_type=dataset_type)
 
 
 

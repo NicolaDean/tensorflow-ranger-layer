@@ -36,7 +36,7 @@ class RANGER_HELPER():
         layers = [layer for layer in self.model.layers]
         for l in layers:
             if isinstance(l,Ranger):
-                print(f"Set mode {mode.name} to {l.name}")
+                #print(f"Set mode {mode.name} to {l.name}")
                 l.set_ranger_mode(mode)
                 l.set_ranger_policy(policy)
                 l.set_ranger_granularity(granularity)
@@ -81,7 +81,7 @@ class RANGER_HELPER():
         #IN and OUT of the Network
         #outputs = layers[len(layers)-1]
         #layers.pop()    #Remove output
-
+        
         #Recursively Search every subblock to add Renger after Conv and Maxpool
         new_model = RANGER_HELPER.convert_block(layers,new_model)
         #new_model = keras.Model(inputs=(inputs), outputs=outputs)
@@ -91,10 +91,10 @@ class RANGER_HELPER():
     def convert_model_v2(self):
         def match_cond(layer):
             if     isinstance(layer,tf.keras.layers.Conv2D)\
-                 or isinstance(layer,tf.keras.layers.BatchNormalization):
+                 or isinstance(layer,tf.keras.layers.BatchNormalization)\
+                or isinstance(layer,tf.keras.layers.MaxPooling2D) \
+                or isinstance(layer,tf.keras.layers.AveragePooling2D):
                 #or isinstance(layer,tf.keras.layers.Add) \
-                #or isinstance(layer,tf.keras.layers.MaxPooling2D) \
-                #or isinstance(layer,tf.keras.layers.AveragePooling2D) \
                 
                 return True
             else:
@@ -118,13 +118,13 @@ class RANGER_HELPER():
 
     After it finish the process it set the model in inference mode
     '''
-    def tune_model_range(self,X,Y=None,reset=True):
+    def tune_model_range(self,X,Y=None,reset=True,verbose=False):
         if reset:
             self.reset_ranger_layers()
             
         #print("Tuning the moodel Range Domain")
         self.set_ranger_mode(RangerModes.RangeTuning)
-        self.model.predict(X,verbose=False)
+        self.model.predict(X,verbose=verbose)
 
         #TODO => PRINT THE MODELS RANGES
         self.set_ranger_mode(RangerModes.Inference)
