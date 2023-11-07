@@ -9,6 +9,7 @@ our_datasets/steering_wheel
 fat/pedestrian_ssd
 fat/results
 fat/test
+*.pkl
 #CHECKPOINTS
 *saved_TFOD_models*
 *.tfrecord
