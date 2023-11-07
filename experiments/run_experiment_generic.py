@@ -34,7 +34,10 @@ def regression_head():
 
 def regression_threshold(true,pred,th=0.7):
     diff = np.abs(true-pred)
-    return np.sum(diff > th)
+
+    #print(f'{true} - {pred} = {diff} => [{(np.sum(diff > th) > 0)}]')
+
+    return (np.sum(diff > th) > 0)
 
 
 def generate_layer_report(model_name,model,inj_model,DATASET,CLASSES,RANGER,experiment_name,layer_name,NUM_SAMPLE_ITERATION,REGRESSION,USE_RANGER = True):
@@ -81,6 +84,7 @@ def generate_layer_report(model_name,model,inj_model,DATASET,CLASSES,RANGER,expe
             if REGRESSION:
                
                 if not regression_threshold(y,pred,0.7):
+                    #print(f"AAAA : {tot}")
                     for idx in range(NUM_SAMPLE_ITERATION):
                         tot += 1
                         
@@ -92,13 +96,14 @@ def generate_layer_report(model_name,model,inj_model,DATASET,CLASSES,RANGER,expe
                         clip_1  += regression_threshold(inj_pred,pred,1)
 
                         RANGER.set_ranger_mode(RangerModes.Inference,RangerPolicies.Ranger,RangerGranularity.Layer)   
-                        inj_pred        = inj_model.predict(x,verbose=False)
+                        inj_pred = inj_model.predict(x,verbose=False)
 
                         thresh_03 += regression_threshold(inj_pred,pred,0.3)
                         thresh_07 += regression_threshold(inj_pred,pred,0.7)
                         thresh_1  += regression_threshold(inj_pred,pred,1)
 
-                        progress_bar.set_postfix({'tot':tot,'clip 0.3': clip_03/tot,'clip 07': clip_07/tot,'th 0.3': thresh_03/tot,'th 07': thresh_07/tot})
+                        #print("--------------------")
+                        progress_bar.set_postfix({'tot':tot,'clip 0.3': clip_03,'clip 07': clip_07,'th 0.3': thresh_03,'th 07': thresh_07})
                         
             else:
                 #IF NOT MISCLASSIFIED
@@ -121,7 +126,7 @@ def generate_layer_report(model_name,model,inj_model,DATASET,CLASSES,RANGER,expe
                     clip_rob    = 0
                     thresh_rob  = 0
 
-                    '''
+                    
                     RANGER.set_ranger_mode(RangerModes.Inference,RangerPolicies.Clipper,RangerGranularity.Layer)
                     pred        = inj_model.predict(x_batch,batch_size=BATCH_SIZE,verbose=False)
                     pred        = tf.cast(tf.argmax(pred, 1),tf.int32)
@@ -139,19 +144,19 @@ def generate_layer_report(model_name,model,inj_model,DATASET,CLASSES,RANGER,expe
                     thresh_rob  = 1 - thresh_acc
 
                     progress_bar.set_postfix({'Clip_rob': clip_rob,'Thresh_rob': thresh_rob,'tot_samples': tot_samples})
-                    '''
+                    
     if not REGRESSION:
         line_report = Fault_injection_Report(model_name,layer_name,tot_samples,tot_nan,tot_clip_misc,tot_thres_misc,nan_rob,clip_rob,thresh_rob)
     else:
-        rob_clip03 = clip_03/tot
-        rob_clip07 = clip_07/tot
-        rob_clip1  = clip_1/tot
+        rob_clip03 = 1- clip_03/tot
+        rob_clip07 = 1- clip_07/tot
+        rob_clip1  = 1- clip_1/tot
 
-        rob_th03 = thresh_03/tot
-        rob_th07 = thresh_07/tot
-        rob_th1= thresh_1/tot
+        rob_th03 = 1- thresh_03/tot
+        rob_th07 = 1- thresh_07/tot
+        rob_th1  = 1- thresh_1/tot
 
-        line_report = Fault_injection_REG_Report(model_name,layer_name,tot_samples,rob_clip03,rob_clip07,rob_clip1,rob_th03,rob_th07,rob_th1)
+        line_report = Fault_injection_REG_Report(model_name,layer_name,tot,rob_clip03,rob_clip07,rob_clip1,rob_th03,rob_th07,rob_th1)
     return line_report
 
 
@@ -177,7 +182,7 @@ def generate_report(model_name,model,DATASET,experiment_name,NUM_SAMPLE_ITERATIO
 
         if use_layer:
             counter += 1
-            if counter <= 10:
+            if counter <= 5:
                 print(f'USE LAYER: [{layer.name}]')
                 layer_names.append(layer.name)
             else:
@@ -190,7 +195,13 @@ def generate_report(model_name,model,DATASET,experiment_name,NUM_SAMPLE_ITERATIO
     print(f"LEN: {len(layer_names)}")  
     print(layer_names)   
 
-    RANGER,CLASSES = add_ranger_classes_to_model(model,layer_names,NUM_INJECTIONS=50)
+    def range_tune(RANGER):
+        #Range Tuning
+        #TUNE THE LAYERS RANGE DOMAIN
+        print("==============RANGE TUNING================")
+        RANGER.tune_model_range(x_train[:200],verbose=True)#DECOMMENT
+
+    RANGER,CLASSES = add_ranger_classes_to_model(model,layer_names,NUM_INJECTIONS=50,use_classes_ranging=True,range_tuning_fn=range_tune)
     inj_model = RANGER.get_model()
     #yolo_ranger.summary()
     CLASSES.set_model(inj_model)
@@ -198,9 +209,7 @@ def generate_report(model_name,model,DATASET,experiment_name,NUM_SAMPLE_ITERATIO
 
     #inj_model.summary()
 
-    #Range Tuning
-    #TUNE THE LAYERS RANGE DOMAIN
-    #RANGER.tune_model_range(x_train,verbose=True)#DECOMMENT
+   
 
     layer_names = CLASSES.injection_points
 
@@ -212,11 +221,11 @@ def generate_report(model_name,model,DATASET,experiment_name,NUM_SAMPLE_ITERATIO
         report = [line]
         
         report = pd.DataFrame(report)
-        report.to_csv(f"./no_ranger_classification_report/{model_name}_{DATASET[4]}_summary.csv",header=False,mode = 'a', decimal = ',', sep=';')
-
+        report.to_csv(f"./classification_report/{model_name}_{DATASET[4]}_summary.csv",header=False,mode = 'a', decimal = ',', sep=';')
+        exit()
     line_report = Fault_injection_Report("END","END",0,0,0,0,0)
     report = pd.DataFrame([line_report])
-    report.to_csv(f"./no_ranger_classification_report/{model_name}_{DATASET[4]}_summary.csv",header=False,mode = 'a', decimal = ',', sep=';')
+    report.to_csv(f"./classification_report/{model_name}_{DATASET[4]}_summary.csv",header=False,mode = 'a', decimal = ',', sep=';')
 
 
 if __name__ == '__main__':

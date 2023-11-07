@@ -8,10 +8,10 @@ gen_report(){
 }
 
 run_script(){
-    gen_report $1 MNIST 10 48 '--resume_from AAAA --start_at '$2
-    gen_report $1 GTSRB 25 32 '--resume_from AAAA --start_at '$2
-    gen_report $1 CALTECH101 40 64 '--resume_from AAAA --start_at '$2
-    #gen_report $1 SHAPE_COUNT 25 100 '--regression --resume_from AAAA --start_at '$2
+    #gen_report $1 MNIST 10 48 '--resume_from AAAA --start_at '$2
+    #gen_report $1 GTSRB 25 32 '--resume_from AAAA --start_at '$2
+    #gen_report $1 CALTECH101 40 64 '--resume_from AAAA --start_at '$2
+    gen_report $1 SHAPE_COUNT 25 100 '--regression --resume_from AAAA --start_at '$2
 }
 
 
@@ -39,17 +39,16 @@ run_script(){
 
 #gen_report mobilenetv2 MNIST 5 '--resume_from block_1_expand_BN'
 #gen_report mobilenetv2 GTSRB 25 '--resume_from block_2_depthwise_BN'
-for skip in 20 30 40 50 60 70 80 90 100 110 120 130 140 150 160 170 180 190
+for skip in 10 #15 20 25 30 35 40 45 50 55 60 65 70 75 80 85 90 95 100 105 110 115 120 125 130 135 140 145 150 155 160 165 170 175 180 185 190
 do
-    #run_script vgg16 $skip
-    #run_script vgg19 $skip
+    run_script vgg16 $skip
+    run_script vgg19 $skip
     run_script mobilenetv2 $skip
-    #run_script resnet50 $skip
-    #run_script efficientnet $skip
-    #run_script convnettiny $skip
-    #run_script densenet $skip
-    #run_script xception $skip
+    run_script resnet50 $skip
+    run_script efficientnet $skip
+    run_script convnettiny $skip
+    run_script densenet $skip
+    run_script xception $skip
     run_script nasnet $skip
-    
 
 done
