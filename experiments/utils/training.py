@@ -48,7 +48,8 @@ def load_model(MODEL = "vgg16",NUM_CLASSES=3,INPUT_SHAPE=(32,32,3),REGRESSION=Fa
     elif MODEL == "nasnet":
         head = tf.keras.applications.NASNetMobile(include_top=False,weights="imagenet",input_shape=INPUT_SHAPE,classes=NUM_CLASSES)
         preprocess_fn = tf.keras.applications.nasnet.preprocess_input
-        
+    elif MODEL == "dave":
+        return (None, None)
     else:
         print(f"\033[0;31mSELECT A VALID MODEL\033[0m")
         exit()
