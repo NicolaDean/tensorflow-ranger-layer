@@ -1,11 +1,12 @@
 import tensorflow as tf
-
+import numpy as np
 import sys
 import argparse
 import os
 from tqdm import tqdm
 import pathlib
 import numpy as np
+import copy
 LIBRARY_PATH = "/../"
 
 # directory reach
@@ -206,7 +207,7 @@ def generate_report(model_name,model,DATASET,experiment_name,NUM_SAMPLE_ITERATIO
 
         if use_layer:
             counter += 1
-            if counter <= 10:
+            if counter <= 5:
                 print(f'USE LAYER: [{layer.name}]')
                 layer_names.append(layer.name)
             else:
@@ -232,7 +233,6 @@ def generate_report(model_name,model,DATASET,experiment_name,NUM_SAMPLE_ITERATIO
     CLASSES.set_model(inj_model)
     CLASSES.disable_all(verbose=False)
 
-    exit()
     layer_names = CLASSES.injection_points
 
 
@@ -278,6 +278,8 @@ if __name__ == '__main__':
     INPUT_SHAPE     = int(args.input_shape)
     INPUT_SHAPE     = (INPUT_SHAPE,INPUT_SHAPE)
 
+    if MODEL == "dave":
+        INPUT_SHAPE = (200, 66)
 
     #Load chosen dataset
     x_train,x_val,y_train,y_val,NUM_CLASSES = load_dataset(DATASET=DATASET_NAME,shape=INPUT_SHAPE)
@@ -299,10 +301,12 @@ if __name__ == '__main__':
     else:
         x_train = preprocess_fn(x_train)
         x_val   = preprocess_fn(x_val)
+    
+   
 
     DATASET     = (x_train,x_val,y_train,y_val,DATASET_NAME)
     
-    MODEL_PATH = f"./saved_models/{MODEL}_{DATASET_NAME}"
+    MODEL_PATH = f"./saved_models/{MODEL}_{DATASET_NAME}.h5"
 
     if DO_TRAIN:
         train_model(model,DATASET,NUM_CLASSES,EPOCHS,REGRESSION)
@@ -310,6 +314,18 @@ if __name__ == '__main__':
     else:
         print("Load Model from path")
         model       = tf.keras.models.load_model(MODEL_PATH)
+        model.summary()
+        print(x_train[0].shape)
+        input_layer = tf.keras.layers.Input(shape = x_train[0].shape)
+        a = input_layer
+        for layer in model.layers:
+            new_layer = copy.deepcopy(layer)
+            new_layer._inbound_nodes = []
+            a = new_layer(a)
+
+        model = tf.keras.models.Model([input_layer], [a])
+        model.summary()
+        
     
     if DO_STATISTICS:
         if not REGRESSION:
@@ -321,7 +337,6 @@ if __name__ == '__main__':
         line        = Models_statistics(MODEL,DATASET_NAME,acc)
         statistics  = pd.DataFrame([line])
         statistics.to_csv("./classification_report/_models_statistics.csv",mode = 'a', header = False, decimal = ',', sep=';')
-        exit()
 
     if DO_REPORT:
         generate_report(MODEL,model,DATASET,experiment_name=EXP_NAME,NUM_SAMPLE_ITERATION=128,RESUME_LAYER=RESUME_LAYER,START_IDX=START_AT,REGRESSION=REGRESSION)

@@ -105,7 +105,7 @@ class CLASSES_HELPER():
                                                                             return_id_errors = True,
                                                                             range_min=range_min,
                                                                             range_max=range_max,
-                                                                            verbose=verbose
+                                                                            #verbose=verbose
                                                                             )
                 print("GENERATED INJECTIONS")
 

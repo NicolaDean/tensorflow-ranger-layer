@@ -76,6 +76,7 @@ def generate_golden_annotations(model,folder_path,annotation_lines, batch_size, 
     golden_labels   = []
 
     from tqdm import tqdm
+    out_file = open("_golden_annotation.txt", "w")
     for sample in tqdm(annotation_lines):
         #Extract image name
         image_name = sample.split(' ')[0] #Img file name
@@ -103,9 +104,20 @@ def generate_golden_annotations(model,folder_path,annotation_lines, batch_size, 
             if len(y_golden)>max_boxes: y_golden = y_golden[:max_boxes]
             box_data[:len(y_golden)] = y_golden
         
-        images.append(image)
-        golden_labels.append(box_data)
-
+        
+        #images.append(image)
+        #golden_labels.append(box_data)
+        sample_line = f'{image_name}'
+    
+        for b in y_golden:
+            sample_line += " "
+            for c in b:
+                sample_line += f'{str(int(c))},'
+            
+            sample_line = sample_line[:-1]
+        #print(sample_line)
+        out_file.write(sample_line +"\n")
+    out_file.close()
     images       = np.array(images)
 
     golden_labels   = np.array(golden_labels)   
