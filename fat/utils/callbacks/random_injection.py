@@ -13,11 +13,13 @@ from model_helper.classes_model import *
 Activate Classes injection within a certain probability/frequency
 '''
 def layer_activation(self):
+    
     active = tf.random.uniform([]) < self.extraction_frequency
     if active:
             #print("Active")
             #Disable previously selected injection point:
             layer = CLASSES_HELPER.get_layer(self.model,self.layer_name,verbose=False)
+            #print(f'Activate : {self.layer_name}')
             #print(f'{type(layer)} != {type(None)} IS {type(layer) != type(None)}')
             #Enable the Selected Injection point
             layer.set_mode(ErrorSimulatorMode.enabled)

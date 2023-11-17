@@ -21,7 +21,7 @@ import pandas as pd
 from dataclasses import make_dataclass
 
 Fault_injection_Report = make_dataclass("Fault_injection_Report", [("model_name",str),("layer_name",str), ("num_of_injection", int), ("misc_nan",int),("misc_clip", int),("misc_rang", int),("nan_robustness",float),("clip_robustness",float),("range_robustness",float)])
-Fault_injection_REG_Report = make_dataclass("Fault_injection_REG_Report", [("model_name",str),("layer_name",str), ("num_of_injection", int), ("clip_03", float),("clip_07", float),("clip_1",float),("th_03",float),("th_07",float),("th_1",float)])
+Fault_injection_REG_Report = make_dataclass("Fault_injection_REG_Report", [("model_name",str),("layer_name",str), ("num_of_injection", int), ("nan_03", float),("nan_07", float),("nan_1",float),("clip_03", float),("clip_07", float),("clip_1",float),("th_03",float),("th_07",float),("th_1",float)])
 
 Models_statistics = make_dataclass("Models_statistics", [("model_name",str),("dataset",str), ("accuracy",float)])
 
@@ -34,7 +34,10 @@ def regression_head():
 
 def regression_threshold(true,pred,th=0.7):
     diff = np.abs(true-pred)
-    return np.sum(diff > th)
+
+    #print(f'{true} - {pred} = {diff} => [{(np.sum(diff > th) > 0)}]')
+
+    return (np.sum(diff > th) > 0)
 
 
 def generate_layer_report(model_name,model,inj_model,DATASET,CLASSES,RANGER,experiment_name,layer_name,NUM_SAMPLE_ITERATION,REGRESSION,USE_RANGER = True):
@@ -59,6 +62,13 @@ def generate_layer_report(model_name,model,inj_model,DATASET,CLASSES,RANGER,expe
         thresh_03 = 0
         thresh_07 = 0
         thresh_1  = 0
+        nan_03 = 0
+        nan_07 = 0
+        nan_1  = 0
+
+    TH1 = 15
+    TH2 = 30
+    TH3 = 60
 
     nan_rob     = 0
     clip_rob    = 0
@@ -74,31 +84,44 @@ def generate_layer_report(model_name,model,inj_model,DATASET,CLASSES,RANGER,expe
             x = np.expand_dims(x, 0)
             CLASSES.disable_all(verbose=False)
             pred = model.predict(x, verbose = 0)
+            
 
             layer = CLASSES_HELPER.get_layer(inj_model,layer_name,verbose=False)
             layer.set_mode(ErrorSimulatorMode.enabled)  #Enable the Selected Injection point
     
             if REGRESSION:
                
-                if not regression_threshold(y,pred,0.7):
+                if 1:#not regression_threshold(y,pred,0.7):
+                    #print(f"AAAA : {tot}")
                     for idx in range(NUM_SAMPLE_ITERATION):
                         tot += 1
-                        
+
+                        #NO RANGER
+                        RANGER.set_ranger_mode(RangerModes.RangeTuning)
+                        inj_pred = inj_model.predict(x,verbose=False)
+                        print(f"NO RANGER => PRED: [{inj_pred}] , GOLD: [{pred}], VAN: [{y}]")
+                        nan_03 += regression_threshold(inj_pred,pred,TH1)
+                        nan_07 += regression_threshold(inj_pred,pred,TH2)
+                        nan_1  += regression_threshold(inj_pred,pred,TH3)
+
+                        #CLIPPING
                         RANGER.set_ranger_mode(RangerModes.Inference,RangerPolicies.Clipper,RangerGranularity.Layer)
                         inj_pred = inj_model.predict(x,verbose=False)
+                        print(f"WITH RANGER => PRED: [{inj_pred}] , GOLD: [{pred}], VAN: [{y}]")
+                        clip_03 += regression_threshold(inj_pred,pred,TH1)
+                        clip_07 += regression_threshold(inj_pred,pred,TH2)
+                        clip_1  += regression_threshold(inj_pred,pred,TH3)
 
-                        clip_03 += regression_threshold(inj_pred,pred,0.3)
-                        clip_07 += regression_threshold(inj_pred,pred,0.7)
-                        clip_1  += regression_threshold(inj_pred,pred,1)
-
+                        #THRESHOLD
                         RANGER.set_ranger_mode(RangerModes.Inference,RangerPolicies.Ranger,RangerGranularity.Layer)   
-                        inj_pred        = inj_model.predict(x,verbose=False)
+                        inj_pred = inj_model.predict(x,verbose=False)
 
-                        thresh_03 += regression_threshold(inj_pred,pred,0.3)
-                        thresh_07 += regression_threshold(inj_pred,pred,0.7)
-                        thresh_1  += regression_threshold(inj_pred,pred,1)
+                        thresh_03 += regression_threshold(inj_pred,pred,TH1)
+                        thresh_07 += regression_threshold(inj_pred,pred,TH2)
+                        thresh_1  += regression_threshold(inj_pred,pred,TH3)
 
-                        progress_bar.set_postfix({'tot':tot,'clip 0.3': clip_03/tot,'clip 07': clip_07/tot,'th 0.3': thresh_03/tot,'th 07': thresh_07/tot})
+                        print("--------------------")
+                        progress_bar.set_postfix({'tot':tot,'clip 0.3': clip_03,'clip 07': clip_07,'th 0.3': thresh_03,'th 07': thresh_07})
                         
             else:
                 #IF NOT MISCLASSIFIED
@@ -143,15 +166,21 @@ def generate_layer_report(model_name,model,inj_model,DATASET,CLASSES,RANGER,expe
     if not REGRESSION:
         line_report = Fault_injection_Report(model_name,layer_name,tot_samples,tot_nan,tot_clip_misc,tot_thres_misc,nan_rob,clip_rob,thresh_rob)
     else:
-        rob_clip03 = clip_03/tot
-        rob_clip07 = clip_07/tot
-        rob_clip1  = clip_1/tot
+        nan_03
 
-        rob_th03 = thresh_03/tot
-        rob_th07 = thresh_07/tot
-        rob_th1= thresh_1/tot
+        rob_nan_03 = 1- nan_03/tot
+        rob_nan_07 = 1- nan_07/tot
+        rob_nan_1  = 1- nan_1/tot
 
-        line_report = Fault_injection_REG_Report(model_name,layer_name,tot_samples,rob_clip03,rob_clip07,rob_clip1,rob_th03,rob_th07,rob_th1)
+        rob_clip03 = 1- clip_03/tot
+        rob_clip07 = 1- clip_07/tot
+        rob_clip1  = 1- clip_1/tot
+
+        rob_th03 = 1- thresh_03/tot
+        rob_th07 = 1- thresh_07/tot
+        rob_th1  = 1- thresh_1/tot
+
+        line_report = Fault_injection_REG_Report(model_name,layer_name,tot,rob_nan_03,rob_nan_07,rob_nan_1,rob_clip03,rob_clip07,rob_clip1,rob_th03,rob_th07,rob_th1)
     return line_report
 
 
@@ -190,18 +219,20 @@ def generate_report(model_name,model,DATASET,experiment_name,NUM_SAMPLE_ITERATIO
     print(f"LEN: {len(layer_names)}")  
     print(layer_names)   
 
-    RANGER,CLASSES = add_ranger_classes_to_model(model,layer_names,NUM_INJECTIONS=50)
+    
+    def range_tune(RANGER):
+        #Range Tuning
+        #TUNE THE LAYERS RANGE DOMAIN
+        print("==============RANGE TUNING================")
+        RANGER.tune_model_range(x_train,verbose=True)#DECOMMENT
+
+    RANGER,CLASSES = add_ranger_classes_to_model(model,layer_names,NUM_INJECTIONS=50,use_classes_ranging=True,range_tuning_fn=range_tune)
     inj_model = RANGER.get_model()
     #yolo_ranger.summary()
     CLASSES.set_model(inj_model)
     CLASSES.disable_all(verbose=False)
 
-    #inj_model.summary()
-
-    #Range Tuning
-    #TUNE THE LAYERS RANGE DOMAIN
-    RANGER.tune_model_range(x_train,verbose=True)#DECOMMENT
-
+    exit()
     layer_names = CLASSES.injection_points
 
 
@@ -210,13 +241,11 @@ def generate_report(model_name,model,DATASET,experiment_name,NUM_SAMPLE_ITERATIO
     for layer in layer_names:
         line = generate_layer_report(model_name,model,inj_model,DATASET,CLASSES,RANGER,experiment_name,layer,NUM_SAMPLE_ITERATION,REGRESSION)
         report = [line]
-        
         report = pd.DataFrame(report)
-        report.to_csv(f"./no_ranger_classification_report/{model_name}_{DATASET[4]}_summary.csv",header=False,mode = 'a', decimal = ',', sep=';')
-
-    line_report = Fault_injection_Report("END","END",0,0,0,0,0)
-    report = pd.DataFrame([line_report])
-    report.to_csv(f"./no_ranger_classification_report/{model_name}_{DATASET[4]}_summary.csv",header=False,mode = 'a', decimal = ',', sep=';')
+        report.to_csv(f"./classification_report/{model_name}_{DATASET[4]}_summary.csv",header=False,mode = 'a', decimal = ',', sep=';')
+    #line_report = Fault_injection_Report("END","END",0,0,0,0,0)
+    #report = pd.DataFrame([line_report])
+    #report.to_csv(f"./classification_report/{model_name}_{DATASET[4]}_summary.csv",header=False,mode = 'a', decimal = ',', sep=';')
 
 
 if __name__ == '__main__':
@@ -263,8 +292,10 @@ if __name__ == '__main__':
     
     #Preprocess data for the specific model
     if REGRESSION:
-        x_train /= 255
-        x_val /= 255
+        x_train = preprocess_fn(x_train)
+        x_val   = preprocess_fn(x_val)
+        #x_train = x_train/255
+        #x_val   = x_val/255
     else:
         x_train = preprocess_fn(x_train)
         x_val   = preprocess_fn(x_val)

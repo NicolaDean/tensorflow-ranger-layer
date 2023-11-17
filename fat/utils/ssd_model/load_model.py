@@ -39,17 +39,16 @@ def get_model_detection_function(model):
   return detect_fn
 
 #TODO => RIMETTERE I CHECKPOINT IN get_inference_model ... perchè non li carica?
-def load_model_ssd(use_classes=False,injection_points=[],dataset='aerial',get_dataset=False,config_path="./mobilenet_ssd_config",range_tune=None):
+def load_model_ssd(checkpoint = "./ssd-mobilenet/aerial",model_name="ssd-mobilenet",use_classes=False,injection_points=[],dataset='aerial',get_dataset=False,config_path="./mobilenet_ssd_config",range_tune=None):
     
+    CHECKPOINTS_FOLDER = checkpoint
     if dataset == "aerial":
       #BOATS DATASET
-      CHECKPOINTS_FOLDER = "./ssd_training" #Boats
       test_record_fname       = f'./Aerial-Maritime-9/test/movable-objects.tfrecord'
       train_record_fname      = f'./Aerial-Maritime-9/train/movable-objects.tfrecord'
       label_map_pbtxt_fname   = f'./Aerial-Maritime-9/train/movable-objects_label_map.pbtxt'
     elif dataset == "pedestrian":
       #SELF DRIVING PEDESTRIAN
-      CHECKPOINTS_FOLDER      = "./pedestrian_ssd/training" #Pedestrian
       test_record_fname       = f'./Self-Driving-Car-3/train.tfrecord'
       train_record_fname      = f'./Self-Driving-Car-3/valid.tfrecord'
       label_map_pbtxt_fname   = f'./Self-Driving-Car-3/pedestrian_label_map.pbtxt'
@@ -57,7 +56,7 @@ def load_model_ssd(use_classes=False,injection_points=[],dataset='aerial',get_da
        print(f"\033[0;31mDATASET {dataset} do NOT exits\033[0m")
     
     #TODO => SET DATASET FROM HERE SO WE HAVE AN EASY TO USE TRAINING/INFERENCE POINT
-    MODEL = SSD_MODEL(path=config_path,model_name="ssd-mobilenet")
+    MODEL = SSD_MODEL(path=config_path,model_name=model_name)
 
     #DOWNLOAD all the configurations and dataset and checkpoits necessary for the model
     MODEL.load_model(train_record_fname,test_record_fname,label_map_pbtxt_fname)
@@ -67,6 +66,7 @@ def load_model_ssd(use_classes=False,injection_points=[],dataset='aerial',get_da
     model,ssd_inference_fn,configs, model_config      = MODEL.get_inference_model(most_recent_checkpoint_path)
     
     model._feature_extractor.classification_backbone.summary()
+    
     # Run model through a dummy image so that variables are created
     image, shapes   = model.preprocess(tf.zeros([1, 320, 320, 3]))
     prediction_dict = model.predict(image, shapes)
@@ -74,6 +74,7 @@ def load_model_ssd(use_classes=False,injection_points=[],dataset='aerial',get_da
     #Add classes and ranger
     vanilla_backone = model._feature_extractor.classification_backbone
     inj_backbone    = None
+
 
     if use_classes:
         RANGER,CLASSES = add_ranger_classes_to_model(vanilla_backone,injection_points,NUM_INJECTIONS=50,use_classes_ranging=True,range_tuning_fn=range_tune)

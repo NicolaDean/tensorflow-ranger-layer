@@ -29,12 +29,9 @@ def load_dataset(shape = (IMG_HEIGHT, IMG_WIDTH)):
         x_test = pickle.load(inputfile)
     '''
     y_train = pd.read_csv(train_label)
-    #y_test  = pd.read_csv(test_label,header = None)
-
     y_train = np.array(y_train)
-    #y_test  = np.array(y_test)
 
-    img_rows, img_cols = 100,100
+    img_rows, img_cols = 100, 100
 
     if K.image_data_format() == 'channels_first':
         x_train = x_train.reshape(x_train.shape[0], 3, img_rows, img_cols)
@@ -44,12 +41,17 @@ def load_dataset(shape = (IMG_HEIGHT, IMG_WIDTH)):
         x_train = x_train.reshape(x_train.shape[0], img_rows, img_cols,3)
         #x_test = x_test.reshape(x_test.shape[0], img_rows, img_cols,3)
         input_shape = (img_rows, img_cols, 3)
-    print(input_shape)
+
+    resize_x = []
+    for idx in tqdm(range(x_train.shape[0])):
+        resize_x.append(cv2.resize(x_train[idx],shape))
+
+    x_train = np.stack(resize_x)
+
     print(x_train.shape[0], 'train samples')
-    #print(x_test.shape[0], 'test samples')
-    
+
     x_train = x_train.astype('float32')
-    #x_test = x_test.astype('float32')
+
 
     x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.3, random_state=42, shuffle=True)
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 train_all_model(){
-    python post_fat_report.py --layer $1 --epoch 130 --checkpoint $2/$2 --experiment_name $2 --single_f1_file
+    python post_fat_report.py --layer $1 --epoch 5 --checkpoint $2/$2 --experiment_name $2 --single_f1_file --dataset ./Self-Driving-Car-3
 }
 
 
@@ -36,7 +36,12 @@ generate_report()
     
 }
 
-generate_report MULTI_LAYER_FREQ_ZERO_0.5
+#generate_report PED_MULTILAYER_MIXED_v1_0.5
+#generate_report PED_MULTILAYER_MIXED_v1_0.75
+#generate_report PED_MULTILAYER_FREQ_0.5
+#generate_report PED_MULTILAYER_FREQ_0.75
+
+#generate_report MULTI_LAYER_FREQ_ZERO_0.5
 
 #generate_report MULTI_LAYER_FREQ_MASK_GRAD_0.5
 #generate_report MULTI_LAYER_FREQ_DEV_0.5

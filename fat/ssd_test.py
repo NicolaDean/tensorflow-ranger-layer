@@ -24,7 +24,15 @@ sys.path.append("./")
 injection_points =  []
 injection_points += ["block_3_project"]
 
-model,CLASSES,RANGER,detect_fn,configs,vanilla_backone,inj_backbone = load_model_ssd(use_classes=True,injection_points=injection_points,dataset="pedestrian")
+MODEL = "mobilenet_ssd"
+MODEL = "fast_rcnn"
+
+DATASET ="boats"
+DATASET ="pedestrian"
+
+CHECKPOINT = f"{MODEL}/{DATASET}"
+
+model,CLASSES,RANGER,detect_fn,configs,vanilla_backone,inj_backbone = load_model_ssd(checkpoint=CHECKPOINT,use_classes=True,injection_points=injection_points,dataset="pedestrian")
 
 golden_gen_ranger,ranger_size   = get_vanilla_generator('./../../keras-yolo3/train/',32,classes_path,anchors_path,input_shape,random=False, keep_label=True, proc_img=False)
 golden_gen_ranger,ranger_size   = get_vanilla_generator('./Self-Driving-Car-3/train/',32,classes_path,anchors_path,input_shape,random=False, keep_label=True, proc_img=False)

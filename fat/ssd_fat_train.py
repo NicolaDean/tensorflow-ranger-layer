@@ -9,7 +9,7 @@ from utils.ssd_model.train_fat import train_fat
 from utils.training.gen_golden_annotations import *
 from tqdm import tqdm
 
-injection_points = ["block_16_expand"]
+injection_points = ["block_4_expand"]
 
 import os
     
@@ -37,4 +37,6 @@ def range_tune(RANGER):
         #image_data = np.expand_dims(data[0], 0)  # Add batch dimension.
         RANGER.tune_model_range(image_data, reset=False)
 
-train_fat(injection_points, 'aerial', use_classes=False,frequency=0,use_batch=True,range_tune=range_tune)
+#NOTATO UN ERRORE => VEDI TRAIN FAT
+#'aerial'
+train_fat(injection_points, 'ssd-mobilenet','pedestrian', use_classes=False,frequency=0.5,use_batch=True,range_tune=range_tune)

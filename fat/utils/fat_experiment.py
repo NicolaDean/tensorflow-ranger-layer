@@ -61,7 +61,7 @@ injection_points += ["batch_normalization_25", "batch_normalization_42", "batch_
 injection_points = []
 
 
-def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGHT_NAME=FINAL_WEIGHT_NAME,injection_points=injection_points,GOLDEN_LABEL = False, MIXED_LABEL = False, MIXED_LABEL_V2 = False, MIXED_LABEL_V3 = False,MIXED_LABEL_V4 = False,GOLDEN_GT = False, injection_frequency = 1.0, switch_prob = 0.5, num_epochs_switch = 1,custom_loss=False,custom_loss_v2=False,MULTI_LAYERS_FLAG=False,UNIFORM_LAYER_POLICY=False,DATASET="./../../keras-yolo3",VANILLA_TRAINING=False,WEIGHT_FILE_PATH=WEIGHT_FILE_PATH,extraction_type=UNIFORM_EXTRACTION):
+def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGHT_NAME=FINAL_WEIGHT_NAME,injection_points=injection_points,GOLDEN_LABEL = False, MIXED_LABEL = False, MIXED_LABEL_V2 = False, MIXED_LABEL_V3 = False,MIXED_LABEL_V4 = False,GOLDEN_GT = False, injection_frequency = 1.0, switch_prob = 0.5, num_epochs_switch = 1,custom_loss=False,custom_loss_v2=False,MULTI_LAYERS_FLAG=False,UNIFORM_LAYER_POLICY=False,DATASET="./../../keras-yolo3",VANILLA_TRAINING=False,WEIGHT_FILE_PATH=WEIGHT_FILE_PATH,extraction_type=UNIFORM_EXTRACTION,MSFAT=False,LOSS_W=1):
 
     annotation_path_train   = f'{DATASET}/train/_annotations.txt'
     annotation_path_valid   = f'{DATASET}/valid/_annotations.txt' 
@@ -78,7 +78,10 @@ def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGH
     if not MULTI_LAYERS_FLAG:
         root, log_dir, model_dir = init_path(root=f'./results/{injection_points[0]}/',EXPERIMENT_NAME=EXPERIMENT_NAME)
     else:
-        root, log_dir, model_dir = init_path(root=f'./results/{EXPERIMENT_NAME}/',EXPERIMENT_NAME=EXPERIMENT_NAME)
+        if MSFAT != -1:
+            root, log_dir, model_dir = init_path(root=f'./MULTI_STEP_FAT/{EXPERIMENT_NAME}/checkpoints/',EXPERIMENT_NAME=EXPERIMENT_NAME)
+        else:
+            root, log_dir, model_dir = init_path(root=f'./results/{EXPERIMENT_NAME}/',EXPERIMENT_NAME=EXPERIMENT_NAME)
 
     if not VANILLA_TRAINING:
         #Tune ranger layers
@@ -90,8 +93,8 @@ def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGH
             pass
 
     #Build a YOLO model with CLASSES and RANGER Integrated [TODO pass here the list of injection points]
-    model, CLASSES, RANGER, vanilla_body,model_body = build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,injection_points,classes_enable=(not VANILLA_TRAINING),custom_loss=custom_loss,custom_loss_v2=custom_loss_v2,range_tuning_fn=range_tuning)
-    checkpoint_period = 10
+    model, CLASSES, RANGER, vanilla_body,model_body = build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,injection_points,classes_enable=(not VANILLA_TRAINING),custom_loss=custom_loss,custom_loss_v2=custom_loss_v2,range_tuning_fn=range_tuning,LOSS_W=LOSS_W)
+    checkpoint_period = 5
 
     #retrieve the f1score target in case of mixedV3
     if MIXED_LABEL_V3 or MIXED_LABEL_V4:
@@ -203,6 +206,8 @@ def run_fat_experiment(EPOCHS=EPOCHS,EXPERIMENT_NAME=EXPERIMENT_NAME,FINAL_WEIGH
 
     if not MULTI_LAYERS_FLAG: 
         file_name = model_dir + EXPERIMENT_NAME + "_" +str(injection_frequency)+"_" + injection_points[0] + ".h5"
+    elif MSFAT != -1:
+        file_name = f'{model_dir}{EXPERIMENT_NAME}_STEP_{MSFAT}_{str(injection_frequency)}.h5'
     else:
         file_name = model_dir + EXPERIMENT_NAME + "_" +str(injection_frequency) + ".h5"
 

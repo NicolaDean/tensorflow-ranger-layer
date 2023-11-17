@@ -40,15 +40,21 @@ sys.path.append("./")
 
 
 
-def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_boats_POST_FAT",root_folder="./result",DATASET="./../../keras-yolo3",SKIP_INJECTION=False,SINGLE_F1_FILE=False):
+def generate_report(check_points_path,selected_layer,epoch=5,out_prefix="yolo_boats_POST_FAT",root_folder="./result",DATASET="./../../keras-yolo3",SKIP_INJECTION=False,SINGLE_F1_FILE=False,NUM_ITERATATION_PER_SAMPLE=50,OUT_PATH="./reports/yolo",force_out_name="None"):
 
-    OUTPUT_NAME    = f"./reports/yolo/{selected_layer[0]}/{out_prefix}_epoch_{epoch}.csv"
-    OUTPUT_NAME_F1 = f"./reports/yolo/{selected_layer[0]}/F1_REPORT_{out_prefix}_{selected_layer}.csv"
+    OUTPUT_NAME    = f"{OUT_PATH}/{selected_layer[0]}/{out_prefix}_epoch_{epoch}.csv"
+    OUTPUT_NAME_F1 = f"{OUT_PATH}/{selected_layer[0]}/F1_REPORT_{out_prefix}_{selected_layer}.csv"
     
     if SINGLE_F1_FILE:
-        OUTPUT_NAME_F1 = f"./reports/yolo/F1_REPORT_{out_prefix}.csv"
-    
-    NUM_ITERATATION_PER_SAMPLE = 50
+        OUTPUT_NAME_F1 = f"{OUT_PATH}/F1_REPORT_{out_prefix}.csv"
+
+    if force_out_name != "None":
+        OUTPUT_NAME_F1 = force_out_name
+
+    print(OUTPUT_NAME_F1)
+
+    #CHECK IF PATH EXISTS
+
 
     annotation_path_train  = f'{DATASET}/train/_annotations.txt'
     annotation_path_valid  = f'{DATASET}/valid/_annotations.txt'
@@ -356,6 +362,10 @@ if __name__ == '__main__':
     parser.add_argument("--dataset"        ,  default="./../../keras-yolo3",action="store")
     parser.add_argument("--skip_injection" ,  default=False,action="store_true")
     parser.add_argument("--single_f1_file" ,  default=False,action="store_true")
+    parser.add_argument("--num_iteration"  ,  default=50,action="store")
+    parser.add_argument("--output_path"    ,  default="./reports/yolo",action="store")
+    parser.add_argument("--force_checkpoint_name",  default=False, action="store_true")
+    parser.add_argument("--force_out_name" ,default="None",action='store')
 
     args            = parser.parse_args()
     prefix          = args.checkpoint
@@ -367,8 +377,10 @@ if __name__ == '__main__':
     DATASET         = str(args.dataset)
     SKIP_INJECTION  = bool(args.skip_injection)
     SINGLE_F1_FILE  = str(args.single_f1_file)
-    
-    
+    NUM_ITERATATION_PER_SAMPLE = int(args.num_iteration)
+    OUT_PATH = str(args.output_path)
+    FORCE_CHECKPOINT_NAME = bool(args.force_checkpoint_name)
+    force_out_name               = str(args.force_out_name)
 
     if pre_fat:
         if prefix == None:
@@ -386,11 +398,13 @@ if __name__ == '__main__':
     while len(epoch) < 3:
         epoch = "0"+epoch
     
-    
-    for file_name in os.listdir(f"{root_folder}/{prefix}/"):
-        if "-ep"+epoch in file_name:
-            CHECKPOINT_PATH =  f"{root_folder}/{prefix}/{file_name}"
-            break
+    if FORCE_CHECKPOINT_NAME:
+        CHECKPOINT_PATH = prefix
+    else:
+        for file_name in os.listdir(f"{root_folder}/{prefix}/"):
+            if "-ep"+epoch in file_name:
+                CHECKPOINT_PATH =  f"{root_folder}/{prefix}/{file_name}"
+                break
     
     print(CHECKPOINT_PATH)
-    generate_report(CHECKPOINT_PATH,SELECTED_LAYERS,epoch=epoch,out_prefix=experiment_name,root_folder=root_folder,DATASET=DATASET,SKIP_INJECTION=SKIP_INJECTION,SINGLE_F1_FILE=SINGLE_F1_FILE)
+    generate_report(CHECKPOINT_PATH,SELECTED_LAYERS,epoch=epoch,out_prefix=experiment_name,root_folder=root_folder,DATASET=DATASET,SKIP_INJECTION=SKIP_INJECTION,SINGLE_F1_FILE=SINGLE_F1_FILE,NUM_ITERATATION_PER_SAMPLE=NUM_ITERATATION_PER_SAMPLE,OUT_PATH=OUT_PATH,force_out_name=force_out_name)

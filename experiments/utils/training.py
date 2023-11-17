@@ -48,22 +48,28 @@ def load_model(MODEL = "vgg16",NUM_CLASSES=3,INPUT_SHAPE=(32,32,3),REGRESSION=Fa
     elif MODEL == "nasnet":
         head = tf.keras.applications.NASNetMobile(include_top=False,weights="imagenet",input_shape=INPUT_SHAPE,classes=NUM_CLASSES)
         preprocess_fn = tf.keras.applications.nasnet.preprocess_input
-        
     else:
-        print(f"\033[0;31mSELECT A VALID MODEL\033[0m")
-        exit()
-
+        print(f"\033[0;31mNO VALID MODEL SELECTED\033[0m")
+        preprocess_fn = lambda x: x/255
+        return None, preprocess_fn
     layers = tf.keras.layers
     
     
-    model = layers.BatchNormalization()(head.output)
-    model = layers.Flatten()(model)
-    model = layers.Dense(512, activation='relu')(model)
+    
 
     if not REGRESSION:
+        model = layers.BatchNormalization()(head.output)
+        model = layers.Flatten()(model)
+        model = layers.Dense(512, activation='relu')(model)
         out   = layers.Dense(NUM_CLASSES, activation='softmax')(model)
     else:
-        out   = layers.Dense(NUM_CLASSES, activation='relu')(model)
+        model = layers.Dropout(0.5)(head.output)
+        model = layers.GlobalAveragePooling2D()(model)
+        model = layers.Dense(128, activation='elu')(model)
+        model = layers.Dense(64, activation='elu')(model)
+        model = layers.Dense(16, activation='elu')(model)
+        out   = layers.Dense(NUM_CLASSES)(model)
+
 
     model = tf.keras.Model(inputs=head.input, outputs=out)
 

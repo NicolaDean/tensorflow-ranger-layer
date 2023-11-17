@@ -28,6 +28,10 @@ def load_dataset(DATASET = "MNIST",shape=(32,32)):
         x_train,x_val,y_train,y_val = caltech101.load_train(shape)
         #x_test,y_test               = caltech101.load_test(shape)
         NUM_CLASSES = 102
+    elif DATASET == "STEERING_ANGLE":
+        from our_datasets import stearing_angle
+        x_train,x_val,y_train,y_val = stearing_angle.load_data(shape)
+        NUM_CLASSES = 1
     else:
         print(f"\033[0;31mSELECT A VALID DATASET\033[0m")
         exit()

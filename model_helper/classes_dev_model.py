@@ -95,7 +95,7 @@ class CLASSES_HELPER():
                 else:
                     range_min = -30
                     range_max = +30
-
+            
                 available_injection_sites, masks, error_ids = create_injection_sites_layer_simulator(
                                                                             num_of_injection_sites,
                                                                             CLASSES_MODEL_TYPE,

@@ -113,11 +113,18 @@ class CustomLossModel(tf.keras.Model):
         self.loss_tracker       = tf.keras.metrics.Mean(name="loss_tot")
         self.loss_tracker_gt    = tf.keras.metrics.Mean(name="loss_inj")
         self.loss_tracker_inj   = tf.keras.metrics.Mean(name="loss_gt")
+        self.inj_w = 1
+        self.gol_w = 1
 
-        
+    def set_w(self,w):
+        if w !=1:
+            self.inj_w = w
+            self.gol_w = 1 - w
+
     def set_model(self,model,CLASSES=None):
         self.model      = model
         self.CLASSES    = CLASSES
+
 
     # implement the call method
     def call(self, inputs, *args, **kwargs):
@@ -152,15 +159,16 @@ class CustomLossModel(tf.keras.Model):
      
         with tf.GradientTape() as tape:
             loss_inj = self(x, training=True)  # Forward pass Injection 
-            loss_inj = loss_inj * 0.75
+            loss_inj = loss_inj*self.inj_w
             dx_inj   = tape.gradient(loss_inj, self.trainable_variables)
 
         self.CLASSES.disable_all(verbose=False)         # Disable Classes
 
         with tf.GradientTape() as tape:
             loss_gt  = self(x, training=True)  # Forward pass Injection 
-            loss_gt  = loss_gt * 0.25
+            loss_gt  = loss_gt * self.gol_w
             dx_gt    = tape.gradient(loss_gt, self.trainable_variables)
+
         print(type(dx_gt))
         self.optimizer.apply_gradients(zip((dx_gt + dx_inj) , self.trainable_variables))
         #self.optimizer.apply_gradients(zip(, self.trainable_variables))

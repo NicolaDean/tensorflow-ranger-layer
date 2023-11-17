@@ -103,8 +103,9 @@ def post_process_ssd_out(detections,threshold=0.5):
 
         return new_boxes,classes,scores
 
-def post_fat_ssd(model_name='ssd',experiment_name="test",use_classes = True, injection_point='',NUM_INJECTIONS=50,epoch="",SINGLE_F1_FILE=False,DATASET="./../../keras-yolo3",dataset_type="aerial"):
+def post_fat_ssd(model_name='mobilenet_ssd',experiment_name="test",use_classes = True, injection_point='',NUM_INJECTIONS=50,epoch="",SINGLE_F1_FILE=False,DATASET="./../../keras-yolo3",dataset_type="aerial"):
 
+    
     OUTPUT_NAME    = f"./reports/{model_name}/{injection_point}/{experiment_name}_epoch_{epoch}.csv"
     OUTPUT_NAME_F1 = f"./reports/{model_name}/{injection_point}/F1_REPORT_{experiment_name}_{injection_point}.csv"
 
@@ -130,9 +131,6 @@ def post_fat_ssd(model_name='ssd',experiment_name="test",use_classes = True, inj
          print("NO INJECTION LAYER SELECTED")
          return
     
-
-    model,CLASSES,RANGER,detect_fn,configs,vanilla_backone,inj_backbone = load_model_ssd(use_classes=use_classes,injection_points=[injection_point],dataset=dataset_type)
-    
     #IMPORTANT => SET THE proc_img to false to avoid YOLO preprocess on SSD model
     golden_gen_ranger,ranger_size   = get_vanilla_generator(f'{DATASET}/train/',32,classes_path,anchors_path,input_shape,random=False, keep_label=True, proc_img=False)
     golden_gen_valid,valid_size     = get_vanilla_generator(f'{DATASET}/valid/',1 ,classes_path,anchors_path,input_shape,random=False, keep_label=True, proc_img=False)
@@ -142,19 +140,25 @@ def post_fat_ssd(model_name='ssd',experiment_name="test",use_classes = True, inj
 
     #Range Tune the model
     #RAGE TUNE THE YOLO MODEL
-    print("=============FINE TUNING=============")
+    
     if (ranger_size//32) > 100:
         size = 100
     else:
         size = ranger_size//32
+    
+    def range_tuning(RANGER):
+        print("=============FINE TUNING=============")
+        #for _ in tqdm(range(size)):
+        for _ in tqdm(range(3)):
+            dataset = next(golden_gen_ranger)
+            data   = dataset[0][0]
+            image_data = data
+            #image_data = np.expand_dims(data[0], 0)  # Add batch dimension.
+            RANGER.tune_model_range(image_data, reset=False)
 
-    for _ in tqdm(range(size)):
-        dataset = next(golden_gen_ranger)
-        data   = dataset[0][0]
-        image_data = data
-        #image_data = np.expand_dims(data[0], 0)  # Add batch dimension.
-        RANGER.tune_model_range(image_data, reset=False)
-
+    CHECKPOINT = f'./TFOD_models/{model_name}/{dataset_type}'
+    model,CLASSES,RANGER,detect_fn,configs,vanilla_backone,inj_backbone = load_model_ssd(checkpoint=CHECKPOINT,model_name=model_name,use_classes=use_classes,injection_points=[injection_point],dataset=dataset_type, range_tune=range_tuning)
+    exit()
     #Inizialize experiment variables
     print("-------------------------------")
     print(f'Injection on layer {injection_point}')

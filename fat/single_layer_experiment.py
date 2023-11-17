@@ -1,10 +1,10 @@
 import tensorflow as tf
-'''
+
 gpu = tf.config.list_physical_devices('GPU')
 if len(gpu) != 0:
     print("LIMIT GPU GROWTH")
     tf.config.experimental.set_memory_growth(gpu[0], True) #limits gpu memory
-'''
+
 from utils.fat_experiment import *
 import sys
 import argparse
@@ -31,31 +31,34 @@ injection_points += ["batch_normalization_"+str(i*10) for i in range(2, 8)]
 injection_points += ["conv2d_"+str(i) for i in range(3, 10)]
 injection_points += ["conv2d_"+str(i*10) for i in range(2, 8)]
 
-if __name__ == '__main__':
+parser = argparse.ArgumentParser()
+parser.add_argument("--experiment_name" , default="Generic_experiment", action = "store")
+parser.add_argument("--golden_label"    , default=False, action='store_true')
+parser.add_argument("--mixed_label"     , default=False, action='store_true')
+parser.add_argument("--mixed_label_v2"  , default=False, action='store_true')
+parser.add_argument("--mixed_label_v3"  , default=False, action='store_true')
+parser.add_argument("--mixed_label_v4"  , default=False, action='store_true')
+parser.add_argument("--golden_gt"       , default=False, action='store_true')
+parser.add_argument("--custom_loss"     , default=False, action='store_true')
+parser.add_argument("--custom_loss_v2"  , default=False, action='store_true')
+parser.add_argument("--frequency"       , default=0.5  , action = "store")
+parser.add_argument("--epochs"          , default=36   , action = "store")
+parser.add_argument("--layer"           , default="conv2d_5"   , action = "store")
+parser.add_argument("--switch_prob"     , default =0.5      , action = "store")
+parser.add_argument("--num_epochs_switch", default =1     , action = "store")
+parser.add_argument("--multi_layer"     , default=False, action='store_true')
+parser.add_argument("--unif_stack_policy", default=False,action='store_true')
+parser.add_argument("--vanilla_training",default=False,action='store_true')
+parser.add_argument("--dataset_path"    ,default="./../../keras-yolo3/",action='store')
+parser.add_argument("--init_model"      ,default="./../../keras-yolo3/yolo_boats_final.h5",action='store')
+parser.add_argument("--extraction_type" ,default=1,action='store')
+parser.add_argument("--loss_w",default=1,action='store')
+parser.add_argument("--msfat" ,default=-1,action='store')
+STARTING_POINT_REPORT   = "./reports/yolo/F1_REPORT_BOATS_DEV_PRE_FAT_SINGLE_LAYER.csv"
+parser.add_argument("--starting_point_report"       , default=STARTING_POINT_REPORT, action='store')
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--experiment_name" , default="Generic_experiment", action = "store")
-    parser.add_argument("--golden_label"    , default=False, action='store_true')
-    parser.add_argument("--mixed_label"     , default=False, action='store_true')
-    parser.add_argument("--mixed_label_v2"  , default=False, action='store_true')
-    parser.add_argument("--mixed_label_v3"  , default=False, action='store_true')
-    parser.add_argument("--mixed_label_v4"  , default=False, action='store_true')
-    parser.add_argument("--golden_gt"       , default=False, action='store_true')
-    parser.add_argument("--custom_loss"     , default=False, action='store_true')
-    parser.add_argument("--custom_loss_v2"  , default=False, action='store_true')
-    parser.add_argument("--frequency"       , default=0.5  , action = "store")
-    parser.add_argument("--epochs"          , default=36   , action = "store")
-    parser.add_argument("--layer"           , default="conv2d_5"   , action = "store")
-    parser.add_argument("--switch_prob"     , default =0.5      , action = "store")
-    parser.add_argument("--num_epochs_switch", default =1     , action = "store")
-    parser.add_argument("--multi_layer"     , default=False, action='store_true')
-    parser.add_argument("--unif_stack_policy", default=False,action='store_true')
-    parser.add_argument("--vanilla_training",default=False,action='store_true')
-    parser.add_argument("--dataset_path"    ,default="./../../keras-yolo3/",action='store')
-    parser.add_argument("--init_model"      ,default="./../../keras-yolo3/yolo_boats_final.h5",action='store')
-    parser.add_argument("--extraction_type" ,default=1,action='store')
+def fat_experiment(injection_points = injection_points,args = parser.parse_args()):
 
-    args            = parser.parse_args()
     prefix          = args.golden_label
     epoch           = str(args.epochs)
     experiment_name = str(args.experiment_name)
@@ -79,7 +82,9 @@ if __name__ == '__main__':
     VANILLA_TRAINING    = bool(args.vanilla_training)
     DATASET             = str(args.dataset_path)
     WEIGHT_FILE_PATH    = str(args.init_model)
+    LOSS_W              = float(args.loss_w)
     extraction_type     = int(args.extraction_type)
+    MSFAT               = int(args.msfat)
     
     
     if extraction_type >= 2:
@@ -98,6 +103,8 @@ if __name__ == '__main__':
         injection_points    = [LAYER]
         EXPERIMENT_NAME     = f"{experiment_name}_{args.frequency}_SINGLE_LAYER_" + LAYER
         print(f"Train for layer: {LAYER}")
+    elif MSFAT != -1:
+        EXPERIMENT_NAME = experiment_name
     else:
         EXPERIMENT_NAME = f"{experiment_name}_{args.frequency}"
 
@@ -122,5 +129,9 @@ if __name__ == '__main__':
                        DATASET=DATASET,
                        VANILLA_TRAINING=VANILLA_TRAINING,
                        WEIGHT_FILE_PATH=WEIGHT_FILE_PATH,
-                       extraction_type=extraction_type)
+                       extraction_type=extraction_type,
+                       MSFAT=MSFAT,
+                       LOSS_W=LOSS_W)
     
+if __name__ == '__main__':
+    fat_experiment()

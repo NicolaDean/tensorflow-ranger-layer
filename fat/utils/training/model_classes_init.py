@@ -22,7 +22,7 @@ sys.path.append(directory +  "/../../")
 from model_helper.run_experiment import *
 
 
-def build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,injection_points,classes_enable=True,freeze_body=False,custom_loss=False,custom_loss_v2=False,custom_loss_callback=None,range_tuning_fn=None):
+def build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,injection_points,classes_enable=True,freeze_body=False,custom_loss=False,custom_loss_v2=False,custom_loss_callback=None,range_tuning_fn=None,LOSS_W=1):
 
     class_names = get_classes(classes_path)
     anchors     = get_anchors(anchors_path)
@@ -100,9 +100,11 @@ def build_yolo_classes(WEIGHT_FILE_PATH,classes_path,anchors_path,input_shape,in
     if custom_loss:
         model = Model([yolo_ranger.input, *y_true, *golden_true], model_loss)
     elif custom_loss_v2:
+        
         yolo_model  = Model([yolo_ranger.input, *y_true], model_loss)
         model       = CustomLossModel([yolo_ranger.input, *y_true], model_loss)
         model.set_model(yolo_model,CLASSES=CLASSES)
+        model.set_w(LOSS_W)
         
     else:
         model = Model([yolo_ranger.input, *y_true], model_loss)
